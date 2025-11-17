@@ -1,0 +1,126 @@
+# ============================================================
+# 🌿 default.yaml – Projektweite Standardkonfiguration
+# ============================================================
+
+project:
+  name: inat-habitat-modeling
+  author: Jakob Koeppen
+  description: "Modellierung von Habitaten basierend auf iNaturalist + EO-Daten"
+
+
+# ------------------------------------------------------------
+# 📂 Pfade
+# ------------------------------------------------------------
+paths:
+  project_root: "/Users/jakobkoppermann/Coding/inat_habitat_modeling"
+  base_data_dir: "/Volumes/Data/iNaturalist"
+  ndvi_dir: "${paths.base_data_dir}/NDVI_Exports"
+  ndwi_dir: "${paths.base_data_dir}/NDWI_Exports"
+  output_dir: "${paths.base_data_dir}/outputs"
+  temp_dir: "${paths.base_data_dir}/temp"
+  features_dir: "${paths.base_data_dir}/features"
+  background_dir: "${paths.base_data_dir}/background"
+  combined_dir: "${paths.base_data_dir}/combined"
+
+  # Raster liegen typischerweise hier:
+  processed_dir: "${paths.base_data_dir}/processed"
+
+
+# ------------------------------------------------------------
+# 🌍 Regionen
+# ------------------------------------------------------------
+regions:
+  berlin:
+    bbox_wgs84: [12.7, 52.0, 14.3, 53.0]
+    utm_crs: "EPSG:32633"
+
+
+# ------------------------------------------------------------
+# 🧬 Species – EINZIGE Quelle der Wahrheit
+# ------------------------------------------------------------
+species:
+  macrolepiota_procera:
+    id: 63401
+    name: "Macrolepiota procera"
+    label: 1
+
+  parus_major:
+    id: 203153
+    name: "Parus major"
+    label: 0
+
+
+# ------------------------------------------------------------
+# 🔧 Defaults – Auswahl der aktiven Species & Region
+# ------------------------------------------------------------
+defaults:
+  region: berlin
+  target_species: macrolepiota_procera
+  contrast_species: parus_major
+
+
+# ------------------------------------------------------------
+# 🐸 iNaturalist API Settings
+# ------------------------------------------------------------
+inat:
+  quality_grade: research
+  max_accuracy: 30
+  max_pages: 50
+
+  period:
+    start: "2020-01-01"
+    end: "2024-12-31"
+
+
+# ------------------------------------------------------------
+# 🛰️ Earth Engine
+# ------------------------------------------------------------
+gee:
+  project_id: "inaturalist-474012"
+  scale: 10
+  max_pixels: 10000000000000
+  cloud_filter: 30
+  grid_x: 4
+  grid_y: 4
+  crs: "EPSG:32633"
+  tile_halo_m: 100
+
+
+# ------------------------------------------------------------
+# 📦 Export
+# ------------------------------------------------------------
+export:
+  years: [2021, 2022, 2023, 2024, 2025]
+  months: [7, 8, 9, 10, 11, 12]
+  region_bbox: [12.8, 52.2, 13.8, 52.7]
+  artefacts_folder: "${paths.base_data_dir}/Artefacts"
+
+
+# ------------------------------------------------------------
+# 🧮 Feature-Extraktion
+# ------------------------------------------------------------
+feature_extraction:
+  lag_months: 1
+  buffer_m: 100
+  use_artifacts: true
+  include_metrics:
+    - NDVI
+    - NDWI
+    - NDVI_STD
+    - NDWI_STD
+    - NDVI_MORAN
+    - NDWI_MORAN
+    - NDVI_GEARY
+    - NDWI_GEARY
+
+artefacts:
+  std_kernel_size: 11
+  subsample_step: 5
+
+
+# ------------------------------------------------------------
+# ⚙️ Debug
+# ------------------------------------------------------------
+debug:
+  verbose: true
+  dry_run: false

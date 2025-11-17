@@ -1,0 +1,28 @@
+# ===== Core =====
+numpy
+pandas>=1.5
+pyyaml
+
+# ===== Geo =====
+geopandas>=0.12
+shapely
+rasterio
+pyproj
+folium
+
+# ===== ML =====
+scikit-learn
+xgboost
+
+# ===== iNaturalist =====
+requests
+
+# ===== Visualisation =====
+matplotlib
+
+# ===== Earth Engine =====
+earthengine-api>=0.1.350
+geemap
+
+# ===== Optional: Performance =====
+tqdm

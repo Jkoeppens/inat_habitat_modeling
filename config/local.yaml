@@ -1,0 +1,26 @@
+paths:
+  base_data_dir: "/Volumes/Data/iNaturalist"
+
+regions:
+  berlin:
+    bbox_wgs84: [12.7, 52.0, 14.3, 53.0]
+    utm_crs: "EPSG:32633"
+
+  brandenburg:
+    bbox_wgs84: [11.7, 51.6, 14.8, 53.6]
+    utm_crs: "EPSG:32633"
+
+species:
+  macrolepiota_procera:
+    id: 63401
+    name: "Macrolepiota procera"
+    label: "pilz"
+
+  parus_major:
+    id: 203153
+    name: "Parus major"
+    label: "meise"
+
+defaults:
+  region: "berlin"
+  species: "macrolepiota_procera"
