@@ -1,0 +1,50 @@
+###########################
+# PYTHON
+###########################
+__pycache__/
+*.py[cod]
+*.pyo
+
+###########################
+# VIRTUAL ENVIRONMENT
+###########################
+venv/
+.env/
+.envrc
+
+###########################
+# JUPYTER
+###########################
+.ipynb_checkpoints/
+
+###########################
+# LARGE DATA (BIG FILES)
+###########################
+# ignore data folders anywhere
+**/data/
+
+# geospatial data
+*.tif
+*.tiff
+*.tiff.zip
+*.shp
+*.dbf
+*.prj
+*.shx
+*.geojson
+*.gpkg
+
+# scrollytelling output (HUGE)
+scrollytelling/
+
+###########################
+# MODELS / ML
+###########################
+*.h5
+*.pt
+*.pkl
+
+###########################
+# MISC
+###########################
+.DS_Store
