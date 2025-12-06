@@ -144,9 +144,13 @@ def train_pilz_model(cfg=None):
     # ------------------------------------------------------
     # 4. Feature Columns
     # ------------------------------------------------------
-    feature_cols = [c for c in df.columns if c.startswith("m")]
 
+    feature_cols = [
+    c for c in df.columns
+    if c.startswith("m") and "coverage" not in c
+    ]
     X = df[feature_cols]
+    print(f"🔢 {len(feature_cols)} Features (coverage entfernt)")
 
     print(f"🔢 {len(feature_cols)} Features")
 
@@ -154,7 +158,7 @@ def train_pilz_model(cfg=None):
     # ------------------------------------------------------
     # 5. Sample Weights
     # ------------------------------------------------------
-    coverage_cols = [c for c in feature_cols if "coverage" in c]
+    coverage_cols = [c for c in df.columns if "coverage" in c]
 
     if coverage_cols:
         sample_weights = df[coverage_cols].mean(axis=1).values

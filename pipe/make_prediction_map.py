@@ -49,11 +49,11 @@ STAT_TO_BAND = {
     "ndvi_median": 1,
     "ndvi_mean": 2,
     "ndvi_std": 3,
-    "ndvi_coverage": 4,
+#    "ndvi_coverage": 4,
     "ndwi_median": 5,
     "ndwi_mean": 6,
     "ndwi_std": 7,
-    "ndwi_coverage": 8,
+#    "ndwi_coverage": 8,
     "moran_ndvi": 9,
     "geary_ndvi": 10,
     "moran_ndwi": 11,
@@ -212,7 +212,10 @@ def build_prediction_map(cfg: dict):
     # ------------------------------------------------------
     print("📄 Lese Feature-Header…")
     df_head = pd.read_csv(feature_csv, nrows=1)
-    feature_cols = [c for c in df_head.columns if re.match(r"m\d{2}_.+", c)]
+    feature_cols = [
+    c for c in df_head.columns
+    if re.match(r"m\d{2}_.+", c) and "coverage" not in c
+    ]
     print(f"🔢 Anzahl Features: {len(feature_cols)}")
     print(f"   Beispiel: {feature_cols[:6]}")
 

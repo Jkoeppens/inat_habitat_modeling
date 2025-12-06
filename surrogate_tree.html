@@ -1,0 +1,443 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Global Surrogate Tree</title>
+
+<!-- Finlandica Font -->
+<link href="https://fonts.googleapis.com/css2?family=Finlandica:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  body {
+    font-family: "Finlandica", system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 1rem;
+    background: #f7f7f7;
+  }
+  .label {
+    font-size: 12px;
+    text-anchor: middle;
+    pointer-events: none;
+  }
+
+  /* --- Pfad-Highlighting --- */
+  .leaf-path {
+    transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+  }
+  .leaf-path.faded {
+    opacity: 0.15;
+    stroke-width: 0.8;
+  }
+  .leaf-path.highlighted {
+    opacity: 1.0;
+    stroke: #000;
+    stroke-width: 2.8;
+  }
+</style>
+
+<svg id="tree-svg"></svg>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script>
+// --------------------------------------
+// Eingebettete Daten
+// --------------------------------------
+const treeData = {"feature": "m12_ndvi_mean", "threshold": 0.45892050862312317, "yes": {"feature": "m11_geary_ndwi", "threshold": 0.110894326120615, "yes": {"leaf": 0.27125186632465886, "suit": 0.27125186632465886}, "no": {"feature": "m11_moran_ndwi", "threshold": 0.2683987617492676, "yes": {"feature": "m08_geary_ndwi", "threshold": 0.03022550605237484, "yes": {"leaf": 0.34310201548186003, "suit": 0.34310201548186003}, "no": {"leaf": 0.649445440554828, "suit": 0.649445440554828}, "label": "Feuchtigkeits-Heterogenität (Sommer, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"feature": "m10_geary_ndwi", "threshold": 0.02901502698659897, "yes": {"leaf": 0.636204503137957, "suit": 0.636204503137957}, "no": {"leaf": 0.7793334406885234, "suit": 0.7793334406885234}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "label": "Feuchtigkeits-Cluster (Herbst, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"feature": "m11_moran_ndwi", "threshold": 0.4806208312511444, "yes": {"feature": "m12_moran_ndvi", "threshold": 0.3642455041408539, "yes": {"feature": "m12_geary_ndwi", "threshold": 0.21878062933683395, "yes": {"leaf": 0.060533648272976276, "suit": 0.060533648272976276}, "no": {"leaf": 0.01797730862551058, "suit": 0.01797730862551058}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"leaf": 0.11898655361599392, "suit": 0.11898655361599392}, "label": "Vegetations-Cluster (Herbst, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "no": {"feature": "m12_geary_ndwi", "threshold": 0.056137438863515854, "yes": {"feature": "m10_geary_ndwi", "threshold": 0.04833643510937691, "yes": {"leaf": 0.15312946705078637, "suit": 0.15312946705078637}, "no": {"leaf": 0.31734612623516184, "suit": 0.31734612623516184}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"leaf": 0.44346596151590345, "suit": 0.44346596151590345}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "label": "Feuchtigkeits-Cluster (Herbst, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "label": "Vegetationsdichte (Herbst, NDVI)", "palette": ["#f2f2f2", "#a3c586", "#2f6b3a"], "range": [0.0, 1.0]};
+
+
+// --------------------------------------
+// Paletten
+// --------------------------------------
+const viridis = [
+  "#440154","#472f7d","#3b518b","#2c718e",
+  "#21918c","#27ad81","#5cc863","#aadc32","#fde725"
+];
+
+function paletteForFeature(name) {
+  if (!name) return ["#ddd","#bbb","#999"];
+  const n = name.toLowerCase();
+  if (n.includes("ndvi"))  return ["#f2f2f2","#a3c586","#2f6b3a"];
+  if (n.includes("ndwi"))  return ["#f7fbff","#6baed6","#08519c"];
+  if (n.includes("moran")) return ["#fee8c8","#fdbb84","#e34a33"];
+  if (n.includes("geary")) return ["#f7f4f9","#998ec3","#542788"];
+  return ["#eee","#ccc","#aaa"];
+}
+
+function rangeForFeature(name) {
+  if (!name) return [0,1];
+  const n = name.toLowerCase();
+  if (n.includes("ndvi"))  return [0,1];
+  if (n.includes("ndwi"))  return [-1,1];
+  if (n.includes("moran")) return [-0.2,4];
+  if (n.includes("geary")) return [0,1.5];
+  return [0,1];
+}
+
+
+// --------------------------------------
+// SVG Setup
+// --------------------------------------
+const svg = d3.select("#tree-svg");
+const nodeW = 240;
+const nodeH = 74;
+const xSpacing = 220;
+const ySpacing = 160;
+
+
+// --------------------------------------
+// Hierarchie (Nein links, Ja rechts)
+// --------------------------------------
+const root = d3.hierarchy(treeData, d => {
+  const kids = [];
+  if (d.no)  kids.push({ ...d.no, _edge:"Nein" });
+  if (d.yes) kids.push({ ...d.yes, _edge:"Ja" });
+  return kids.length ? kids : null;
+});
+
+
+// Tiefe
+function assignDepth(node, depth) {
+  node.depth = depth;
+  if (node.children) node.children.forEach(ch => assignDepth(ch, depth+1));
+}
+assignDepth(root, 0);
+
+
+// --------------------------------------
+// Suitability-basiertes Layout (xIndex)
+// --------------------------------------
+const leaves = root.leaves().sort((a, b) => {
+  const sa = Number.isFinite(a.data.suit) ? a.data.suit : 0.5;
+  const sb = Number.isFinite(b.data.suit) ? b.data.suit : 0.5;
+  return sa - sb;   // links = niedrig, rechts = hoch
+});
+
+leaves.forEach((leaf, i) => { leaf.xIndex = i; });
+
+function assignInternalX(node) {
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(assignInternalX);
+    const xs = node.children.map(c => c.xIndex);
+    node.xIndex = xs.reduce((a,b)=>a+b,0) / xs.length;
+  }
+}
+assignInternalX(root);
+
+
+// Koordinaten
+let minX = 1e9, maxX = -1e9;
+let minY = 0,   maxY = -1e9;
+
+root.each(d => {
+  d.x = d.xIndex * xSpacing;
+  d.y = d.depth  * ySpacing;
+  minX = Math.min(minX, d.x);
+  maxX = Math.max(maxX, d.x);
+  maxY = Math.max(maxY, d.y);
+});
+
+const PAD = 220;
+svg.attr("width",  (maxX - minX) + 2*PAD);
+svg.attr("height", (maxY - minY) + 3*PAD);
+
+const g = svg.append("g")
+  .attr("transform", `translate(${PAD-minX}, ${PAD-minY})`);
+
+const defs = svg.append("defs");
+
+
+// --------------------------------------
+// Gradient / Threshold
+// --------------------------------------
+function gradientIdFor(palette) {
+  const id = "grad_" + Math.random().toString(36).slice(2);
+  const gr = defs.append("linearGradient")
+    .attr("id", id)
+    .attr("x1","0%").attr("x2","100%")
+    .attr("y1","0%").attr("y2","0%");
+  palette.forEach((c,i)=>{
+    gr.append("stop")
+      .attr("offset",(i/(palette.length-1))*100+"%")
+      .attr("stop-color",c);
+  });
+  return id;
+}
+
+function thresholdXLocal(d) {
+  const label = d.label || d.feature || "";
+  const [min,max] = d.range || rangeForFeature(label);
+  const thr = d.threshold;
+  if (thr == null) return 0;
+  let rel = (thr-min)/(max-min);
+  rel = Math.max(0.05, Math.min(0.95, rel));
+  return -nodeW/2 + rel*nodeW;
+}
+
+
+// --------------------------------------
+// Knoten-IDs für Highlighting
+// --------------------------------------
+let nodeCounter = 0;
+root.each(d => {
+  d.data._nid = "n" + (nodeCounter++);
+});
+
+
+// --------------------------------------
+// Entscheidungs-Knoten
+// --------------------------------------
+const nodes = root.descendants().filter(d=>!d.data.leaf);
+
+const nodeG = g.append("g")
+  .selectAll("g.node")
+  .data(nodes)
+  .join("g")
+  .attr("class","node")
+  .attr("transform",d=>`translate(${d.x},${d.y})`);
+
+nodeG.each(function(d){
+  const gsel = d3.select(this);
+  const label   = d.data.label || d.data.feature;
+  const palette = paletteForFeature(label);
+  const grad    = gradientIdFor(palette);
+
+  gsel.append("rect")
+      .attr("x",-nodeW/2).attr("y",-nodeH/2)
+      .attr("width",nodeW).attr("height",nodeH)
+      .attr("rx",18)
+      .attr("fill",`url(#${grad})`)
+      .attr("stroke","#333")
+      .attr("stroke-width",1.3);
+
+  const tx = thresholdXLocal(d.data);
+  gsel.append("line")
+      .attr("x1",tx).attr("x2",tx)
+      .attr("y1",-nodeH/2).attr("y2",nodeH/2)
+      .attr("stroke","black")
+      .attr("stroke-width",2);
+
+  gsel.append("text")
+      .attr("class","label").attr("y",-nodeH/2 - 10)
+      .text(label);
+
+  if (d.data.threshold !== undefined) {
+    gsel.append("text")
+        .attr("class","label").attr("y",nodeH/2 + 16)
+        .text("Schwelle: " + d.data.threshold.toFixed(3));
+  }
+});
+
+
+// --------------------------------------
+// Suitability-Skala
+// --------------------------------------
+let maxYLeaf = Math.max(...leaves.map(l=>l.y));
+const barY = maxYLeaf + 200;
+const barX = minX + 40;
+const barW = (maxX - minX) - 80;
+const barH = 40;
+
+const gradSuit = defs.append("linearGradient")
+  .attr("id","gradSuit")
+  .attr("x1","0%").attr("x2","100%")
+  .attr("y1","0%").attr("y2","0%");
+viridis.forEach((c,i)=>{
+  gradSuit.append("stop")
+    .attr("offset",(i/(viridis.length-1))*100+"%")
+    .attr("stop-color",c);
+});
+
+g.append("rect")
+ .attr("x",barX).attr("y",barY)
+ .attr("width",barW).attr("height",barH)
+ .attr("fill","url(#gradSuit)")
+ .attr("stroke","#333")
+ .attr("stroke-width",1.2);
+
+g.append("text")
+ .attr("x",barX)
+ .attr("y",barY - 10)
+ .text("Suitability (0 → 1, Viridis)");
+
+const suitToX = d3.scaleLinear()
+  .domain([0,1])
+  .range([barX, barX + barW]);
+
+
+// Dreiecke (Leaf-Marker) mit Highlight-Events
+const triGroup = g.append("g");
+
+triGroup.selectAll("path")
+ .data(leaves)
+ .join("path")
+ .attr("fill","#111")
+ .attr("class", d => "leaf-tri leaf-" + d.data._nid)
+ .attr("d", d => {
+    let s = d.data.suit;
+    if (!Number.isFinite(s)) s = 0.5;
+    s = Math.max(0,Math.min(1,s));
+    const cx = suitToX(s);
+    const cy = barY + barH/2;
+    const t = 8;
+    return `M ${cx},${cy-t} L ${cx-t},${cy+t} L ${cx+t},${cy+t} Z`;
+ })
+ .on("mouseover", (ev, d) => {
+    const id = "leaf-" + d.data._nid;
+    d3.selectAll(".leaf-path")
+      .classed("faded", true)
+      .classed("highlighted", false);
+    d3.selectAll("." + id)
+      .classed("faded", false)
+      .classed("highlighted", true);
+ })
+ .on("mouseout", () => {
+    d3.selectAll(".leaf-path")
+      .classed("faded", false)
+      .classed("highlighted", false);
+ });
+
+
+// --------------------------------------
+// Suitability-Werte direkt unter der Skala
+// --------------------------------------
+g.append("g")
+ .selectAll("text.suit-label")
+ .data(leaves)
+ .join("text")
+   .attr("class", "suit-label")
+   .attr("text-anchor", "middle")
+   .attr("font-size", 11)
+   .attr("fill", "#333")
+   .attr("x", d => {
+      let s = d.data.suit;
+      if (!Number.isFinite(s)) s = 0.5;
+      return suitToX(Math.max(0, Math.min(1, s)));
+   })
+   .attr("y", barY + barH + 18)
+   .text(d => {
+      let s = d.data.suit;
+      if (!Number.isFinite(s)) s = 0.5;
+      return s.toFixed(3);
+   });
+
+
+// --------------------------------------
+// LEAF-PFADE – starten seitlich, enden mittig / Skala
+// --------------------------------------
+function buildLeafPathPoints(lf) {
+  const anc = lf.ancestors().reverse();          // root → leaf
+  const pathNodes = anc.filter(n => !n.data.leaf);
+
+  const pts = [];
+  const marginY = 6;
+  const offsetX = 16;  // horizontaler Abstand von der Threshold-Linie
+
+  // 1) SPLIT → SPLIT Übergänge
+  for (let i = 0; i < pathNodes.length - 1; i++) {
+    const parent = pathNodes[i];
+    const child  = pathNodes[i+1];
+
+    const side = (child.data._edge === "Ja") ? +1 : -1;
+
+    // START: unten rechts/links der Threshold
+    const pThr   = parent.x + thresholdXLocal(parent.data);
+    const startX = pThr + side * offsetX;
+    const startY = parent.y + nodeH/2 + marginY;
+
+    // ZIEL: oben MITTE der nächsten Box
+    const endX = child.x;
+    const endY = child.y - nodeH/2 - marginY;
+
+    if (pts.length === 0) {
+      pts.push({ x: startX, y: startY });
+    } else {
+      const prev = pts[pts.length - 1];
+      if (prev.x !== startX || prev.y !== startY) {
+        pts.push({ x: startX, y: startY });
+      }
+    }
+
+    pts.push({ x: endX, y: endY });
+  }
+
+  // 2) Letzter Split → Suitability-Skala
+  const lastSplit = pathNodes[pathNodes.length - 1];
+  const finalSide = (lf.data._edge === "Ja") ? +1 : -1;
+
+  const lastThr = lastSplit.x + thresholdXLocal(lastSplit.data);
+  const baseX   = lastThr + finalSide * offsetX;
+  const baseY   = lastSplit.y + nodeH/2 + marginY;
+
+  let s = lf.data.suit;
+  if (!Number.isFinite(s)) s = 0.5;
+  s = Math.max(0, Math.min(1, s));
+
+  const targetX = suitToX(s);
+  const targetY = barY;
+
+  if (pts.length === 0) {
+    pts.push({ x: baseX, y: baseY });
+  }
+
+  pts.push({ x: baseX,   y: baseY });
+  pts.push({ x: targetX, y: targetY });
+
+  return pts;
+}
+
+
+// --------------------------------------
+// Straffer, glatter Spline für alle Pfade
+// --------------------------------------
+const lineGen = d3.line()
+  .x(d => d.x)
+  .y(d => d.y)
+  .curve(d3.curveCatmullRom.alpha(0.1));   // straff, wenig Durchhang
+
+
+// --------------------------------------
+// Pfade zeichnen + Klassen für Highlighting
+// --------------------------------------
+const leafPathGroup = g.append("g")
+  .attr("class", "leaf-paths");
+
+leafPathGroup.selectAll("path")
+  .data(leaves)
+  .join("path")
+    .attr("class", d => {
+      const cls = d.ancestors()
+        .filter(n => !n.data.leaf)
+        .map(n => "node-" + n.data._nid)
+        .join(" ");
+      return "leaf-path " + cls + " leaf-" + d.data._nid;
+    })
+    .attr("fill", "none")
+    .attr("stroke", "#999")
+    .attr("stroke-width", 1.1)
+    .attr("opacity", 0.6)
+    .attr("d", d => lineGen(buildLeafPathPoints(d)));
+
+leafPathGroup.lower();
+
+
+// --------------------------------------
+// Node-Highlight-Events
+// --------------------------------------
+nodeG
+  .on("mouseover", (ev, d) => {
+    const id = "node-" + d.data._nid;
+
+    d3.selectAll(".leaf-path")
+      .classed("faded", true)
+      .classed("highlighted", false);
+
+    d3.selectAll("." + id)
+      .classed("faded", false)
+      .classed("highlighted", true);
+  })
+  .on("mouseout", () => {
+    d3.selectAll(".leaf-path")
+      .classed("faded", false)
+      .classed("highlighted", false);
+  });
+
+</script>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .label {
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .edge-label {
+    font-size: 11px;
+    fill: #444;
+  }
+</style>
+
+<svg id="tree-svg" width="900" height="2000"></svg>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+
+// ---------------------------------------------------------
+// 1. DATEN EINBETTEN (dein Baum, vollständig)
+// ---------------------------------------------------------
+
+const data = {
+  "feature": "moran_ndwi_herbst",
+  "threshold": 0.292778,
+  "label": "Feuchtigkeitsstruktur (Herbst, Moran)",
+  "range": [-0.2, 4.0],
+  "palette": ["#fee8c8", "#fdbb84", "#e34a33"],
+  "yes": {
+    "feature": "ndvi_mean_herbst",
+    "threshold": 0.565459,
+    "label": "Vegetationsdichte (Herbst, NDVI)",
+    "range": [0.0, 1.0],
+    "palette": ["#f2f2f2", "#a3c586", "#2f6b3a"],
+    "yes": {
+      "feature": "geary_ndvi_herbst",
+      "threshold": 0.097263,
+      "label": "Vegetations-Heterogenität (Herbst, Geary)",
+      "range": [0.0, 1.5],
+      "palette": ["#f7f4f9", "#998ec3", "#542788"],
+      "yes": {
+        "feature": "ndwi_mean_herbst",
+        "threshold": -0.600664,
+        "label": "Feuchtigkeit (Herbst, NDWI)",
+        "range": [-1.0, 1.0],
+        "palette": ["#f7fbff", "#6baed6", "#08519c"],
+        "yes": {
+          "leaf": "geeignet",
+          "color": "#fdfcd4"
+        },
+        "no": {
+          "leaf": "mäßig geeignet (trocken)",
+          "color": "#f1e76c"
+        }
+      },
+      "no": {
+        "leaf": "mäßig geeignet",
+        "color": "#76cf60"
+      }
+    },
+    "no": {
+      "leaf": "geringe Eignung",
+      "color": "#2e8e72"
+    }
+  },
+  "no": {
+    "leaf": "ungeeignet",
+    "color": "#481a6c"
+  }
+};
+
+
+// ---------------------------------------------------------
+// 2. SUITABILITY–FARBSKALA
+// ---------------------------------------------------------
+
+const predPalette = [
+  "#481a6c", "#365c8d", "#2e8e72", "#76cf60", "#f1e76c", "#fdfcd4"
+];
+
+
+// ---------------------------------------------------------
+// 3. SVG BASIS
+// ---------------------------------------------------------
+
+const svg = d3.select("#tree-svg");
+let width = +svg.attr("width");
+let height = +svg.attr("height");
+
+const nodeW = 200;
+const nodeH = 80;
+
+
+// ---------------------------------------------------------
+// 4. D3-HIERARCHY (mit yes/no Children)
+// ---------------------------------------------------------
+
+const root = d3.hierarchy(data, d => {
+  const c = [];
+  if (d.yes) c.push(Object.assign({_edge:"Ja"}, d.yes));
+  if (d.no)  c.push(Object.assign({_edge:"Nein"}, d.no));
+  return c.length ? c : null;
+});
+
+
+// ---------------------------------------------------------
+// 5. D3-Tree-Layout zunächst horizontal
+// ---------------------------------------------------------
+
+const layout = d3.tree().nodeSize([120, 220]);
+layout(root);
+
+
+// ---------------------------------------------------------
+// 6. ROTATION → jetzt wird der Baum vertikal
+//
+// neuerX = alterY
+// neuerY = alterX
+// ---------------------------------------------------------
+
+root.each(d => {
+  const oldX = d.x;
+  d.x = d.y;   // horizontal
+  d.y = oldX;  // vertikal
+});
+
+
+// ---------------------------------------------------------
+// 7. Wurzel etwas nach unten verschieben
+// ---------------------------------------------------------
+
+root.each(d => d.y += 150);
+
+
+// ---------------------------------------------------------
+// 8. LINKS ZEICHNEN (korrekt für vertical layout)
+// ---------------------------------------------------------
+
+svg.append("g")
+  .selectAll("path")
+  .data(root.links())
+  .join("path")
+    .attr("fill", "none")
+    .attr("stroke", "#444")
+    .attr("stroke-width", 1.5)
+    .attr("d", d3.linkVertical()
+      .x(d => d.x)
+      .y(d => d.y)
+    );
+
+
+// ---------------------------------------------------------
+// 9. NODES ZEICHNEN
+// ---------------------------------------------------------
+
+const defs = svg.append("defs");
+
+const node = svg.append("g")
+  .selectAll("g")
+  .data(root.descendants())
+  .join("g")
+    .attr("transform", d => `translate(${d.x},${d.y})`);
+
+function thresholdX(d) {
+  if (!d.data.threshold || !d.data.range) return 0;
+  const [min, max] = d.data.range;
+  const r = Math.max(0, Math.min(1, (d.data.threshold - min) / (max - min)));
+  return -nodeW/2 + r * nodeW;
+}
+
+node.each(function(d) {
+
+  const g = d3.select(this);
+
+  // Leaf node ----------------------------------
+  if (d.data.leaf) {
+    g.append("rect")
+      .attr("x", -nodeW/2)
+      .attr("y", -nodeH/2)
+      .attr("width", nodeW)
+      .attr("height", nodeH)
+      .attr("rx", 10)
+      .attr("fill", d.data.color);
+
+    g.append("text")
+      .attr("class", "label")
+      .attr("dy", 4)
+      .text(d.data.leaf);
+
+    return;
+  }
+
+  // Decision node --------------------------------
+  const pal = d.data.palette;
+  const gradId = "grad_" + Math.random().toString(36).slice(2);
+
+  const grad = defs.append("linearGradient")
+    .attr("id", gradId)
+    .attr("x1","0%").attr("x2","0%")
+    .attr("y1","0%").attr("y2","100%");
+
+  pal.forEach((c,i) => {
+    grad.append("stop")
+      .attr("offset", (i/(pal.length-1))*100 + "%")
+      .attr("stop-color", c);
+  });
+
+  g.append("rect")
+    .attr("x", -nodeW/2)
+    .attr("y", -nodeH/2)
+    .attr("width", nodeW)
+    .attr("height", nodeH)
+    .attr("rx", 10)
+    .attr("fill", `url(#${gradId})`);
+
+  // Threshold line
+  const tx = thresholdX(d);
+  g.append("line")
+    .attr("x1", tx)
+    .attr("x2", tx)
+    .attr("y1", -nodeH/2)
+    .attr("y2", nodeH/2)
+    .attr("stroke", "black")
+    .attr("stroke-width", 2);
+
+  // Labels
+  g.append("text")
+    .attr("class", "label")
+    .attr("y", -nodeH/2 - 6)
+    .text(d.data.label);
+
+  g.append("text")
+    .attr("class", "label")
+    .attr("y", nodeH/2 + 14)
+    .text("Schwelle: " + d.data.threshold.toFixed(3));
+});
+
+
+// ---------------------------------------------------------
+// 10. SUITABILITY-SKALA UNTEN
+// ---------------------------------------------------------
+
+const leafs = root.leaves();
+const bottomY = Math.max(...leafs.map(d => d.y)) + 250;
+
+const barX = width * 0.1;
+const barW = width * 0.8;
+
+const grad2 = defs.append("linearGradient")
+  .attr("id", "predGrad")
+  .attr("x1","0%").attr("x2","100%")
+  .attr("y1","0%").attr("y2","0%");
+
+predPalette.forEach((c,i) => {
+  grad2.append("stop")
+    .attr("offset", (i/(predPalette.length-1))*100 + "%")
+    .attr("stop-color", c);
+});
+
+svg.append("rect")
+  .attr("x", barX)
+  .attr("y", bottomY)
+  .attr("width", barW)
+  .attr("height", 40)
+  .attr("fill", "url(#predGrad)");
+
+svg.append("text")
+  .attr("x", barX)
+  .attr("y", bottomY - 12)
+  .text("Suitability");
+
+</script>

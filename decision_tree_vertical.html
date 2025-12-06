@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Decision Tree – ML-Erklärung</title>
+<style>
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0;
+    padding: 1rem;
+    background: #f7f7f7;
+  }
+  .label {
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .edge-label {
+    font-size: 11px;
+    fill: #555;
+  }
+</style>
+
+<svg id="tree-svg"></svg>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// ---------------- Daten ----------------
+const treeData = {"feature": "m12_ndvi_mean", "threshold": 0.480010003, "yes": {"feature": "m12_geary_ndwi", "threshold": 0.0545174778, "yes": {"feature": "m10_moran_ndwi", "threshold": 0.424680263, "yes": {"feature": "m09_geary_ndwi", "threshold": 0.0917379409, "yes": {"leaf": 0.0795388147}, "no": {"leaf": -0.00331585458}, "label": "Feuchtigkeits-Heterogenität (Sommer, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"feature": "m09_ndvi_mean", "threshold": 0.850283265, "yes": {"leaf": -0.0452734791}, "no": {"leaf": 0.0463396348}, "label": "Vegetationsdichte (Sommer, NDVI)", "palette": ["#f2f2f2", "#a3c586", "#2f6b3a"], "range": [0.0, 1.0]}, "label": "Feuchtigkeits-Cluster (Herbst, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "no": {"feature": "m09_geary_ndwi", "threshold": 0.028088253, "yes": {"feature": "m12_geary_ndwi", "threshold": 0.139125019, "yes": {"leaf": -0.0301068556}, "no": {"leaf": 0.0605578534}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"feature": "m07_moran_ndvi", "threshold": -0.210373208, "yes": {"leaf": 0.0634030923}, "no": {"leaf": -0.0631230697}, "label": "Vegetations-Cluster (Sommer, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "label": "Feuchtigkeits-Heterogenität (Sommer, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"feature": "m11_geary_ndwi", "threshold": 0.159952193, "yes": {"feature": "m10_ndvi_mean", "threshold": 0.797601819, "yes": {"feature": "m11_moran_ndwi", "threshold": 0.822871506, "yes": {"leaf": 0.0659800693}, "no": {"leaf": -0.00489215972}, "label": "Feuchtigkeits-Cluster (Herbst, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "no": {"leaf": -0.0576050952}, "label": "Vegetationsdichte (Herbst, NDVI)", "palette": ["#f2f2f2", "#a3c586", "#2f6b3a"], "range": [0.0, 1.0]}, "no": {"feature": "m09_moran_ndwi", "threshold": 0.359485358, "yes": {"leaf": -0.0806633756}, "no": {"feature": "m12_geary_ndwi", "threshold": 0.133171022, "yes": {"leaf": 0.0674301907}, "no": {"leaf": -0.0276072063}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "label": "Feuchtigkeits-Cluster (Sommer, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "label": "Vegetationsdichte (Herbst, NDVI)", "palette": ["#f2f2f2", "#a3c586", "#2f6b3a"], "range": [0.0, 1.0]};
+const suitabilityPalette = ["#440154", "#482475", "#414487", "#355F8D", "#2A788E", "#21918C", "#22A884", "#44BF70", "#7AD151", "#BDDF26", "#FDE725"];
+
+// ----------- Setup: SVG dynamisch -----------
+
+const svg = d3.select("#tree-svg");
+
+// Knotenabstände
+const dx = 260;   // horizontaler Abstand
+const dy = 240;   // vertikaler Abstand
+const nodeW = 240;
+const nodeH = 70;
+
+// Hierarchie aufbauen (yes/no → Kinder)
+const root = d3.hierarchy(treeData, d => {
+  const c = [];
+  if (d.yes) c.push(Object.assign({ "_edge": "Ja" }, d.yes));
+  if (d.no)  c.push(Object.assign({ "_edge": "Nein" }, d.no));
+  return c.length ? c : null;
+});
+
+// D3-Layout (x = horizontal, y = vertikal)
+d3.tree().nodeSize([dx, dy])(root);
+
+// Dynamische SVG-Größe bestimmen
+let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+root.each(d => {
+  if (d.x < minX) minX = d.x;
+  if (d.x > maxX) maxX = d.x;
+  if (d.y < minY) minY = d.y;
+  if (d.y > maxY) maxY = d.y;
+});
+
+const padding = 300;
+
+// SVG final setzen
+svg.attr("width",  (maxX - minX) + 2 * padding);
+svg.attr("height", (maxY - minY) + 3 * padding);
+
+// Verschiebung, damit alles im Bild liegt
+const xOffset = padding - minX;
+const yOffset = padding - minY;
+
+// Hauptgruppe
+const g = svg.append("g")
+  .attr("transform", `translate(${xOffset}, ${yOffset})`);
+
+// ---------------- Links ----------------
+const links = root.links();
+
+g.append("g")
+  .selectAll("path")
+  .data(links)
+  .join("path")
+    .attr("fill", "none")
+    .attr("stroke", "#444")
+    .attr("stroke-width", 1.5)
+    .attr("d", d3.linkVertical()
+      .x(d => d.x)
+      .y(d => d.y)
+    );
+
+// ---------------- Edge-Labels (Ja/Nein) ----------------
+g.append("g")
+  .selectAll("text")
+  .data(links)
+  .join("text")
+    .attr("class", "edge-label")
+    .attr("x", d => (d.source.x + d.target.x) / 2)
+    .attr("y", d => (d.source.y + d.target.y) / 2 - 4)
+    .attr("text-anchor", "middle")
+    .text(d => d.target.data._edge || "");
+
+// ---------------- Knoten ----------------
+const defs = svg.append("defs");
+
+function thresholdX(d) {
+  const data = d.data;
+  if (!data.range || data.threshold == null) return 0;
+  const min = data.range[0];
+  const max = data.range[1];
+  const t   = data.threshold;
+  const rel = Math.max(0, Math.min(1, (t - min) / (max - min)));
+  return -nodeW/2 + rel * nodeW;
+}
+
+const node = g.append("g")
+  .selectAll("g")
+  .data(root.descendants())
+  .join("g")
+    .attr("transform", d => `translate(${d.x},${d.y})`);
+
+node.each(function(d){
+  const gNode = d3.select(this);
+
+  // Leaf-Knoten: neutraler Kasten mit Text, KEINE Suitability-Farbe
+  if (d.data.leaf !== undefined) {
+    gNode.append("rect")
+      .attr("x", -90)
+      .attr("y", -20)
+      .attr("width", 180)
+      .attr("height", 40)
+      .attr("rx", 8)
+      .attr("fill", "#ffffff")
+      .attr("stroke", "#999");
+
+    gNode.append("text")
+      .attr("class", "label")
+      .attr("dy", 4)
+      .text("Leaf: " + d.data.leaf.toFixed(3));
+
+    return;
+  }
+
+  // Decision-Knoten: Feature-Verlauf als Gradient
+  const pal = d.data.palette || ["#dddddd", "#aaaaaa", "#666666"];
+  const gradId = "grad_" + Math.random().toString(36).slice(2);
+
+  const grad = defs.append("linearGradient")
+    .attr("id", gradId)
+    .attr("x1", "0%").attr("x2", "100%")
+    .attr("y1", "0%").attr("y2", "0%");
+
+  // 3-Stützfarben → kontinuierlicher Verlauf
+  pal.forEach((c, i) => {
+    grad.append("stop")
+      .attr("offset", (i / (pal.length - 1)) * 100 + "%")
+      .attr("stop-color", c);
+  });
+
+  // Hintergrund-Rechteck des Knotens
+  gNode.append("rect")
+    .attr("x", -nodeW / 2)
+    .attr("y", -nodeH / 2)
+    .attr("width", nodeW)
+    .attr("height", nodeH)
+    .attr("rx", 10)
+    .attr("fill", "url(#" + gradId + ")")
+    .attr("stroke", "#333")
+    .attr("stroke-width", 1);
+
+  // Threshold-Linie
+  const tx = thresholdX(d);
+  gNode.append("line")
+    .attr("x1", tx)
+    .attr("x2", tx)
+    .attr("y1", -nodeH / 2)
+    .attr("y2", nodeH / 2)
+    .attr("stroke", "black")
+    .attr("stroke-width", 2);
+
+  // Label oben
+  gNode.append("text")
+    .attr("class", "label")
+    .attr("y", -nodeH / 2 - 8)
+    .text(d.data.label || d.data.feature);
+
+  // Threshold-Wert unten
+  if (d.data.threshold != null) {
+    gNode.append("text")
+      .attr("class", "label")
+      .attr("y", nodeH / 2 + 14)
+      .text("Schwelle: " + d.data.threshold.toFixed(3));
+  }
+});
+
+// --------------------------------------------------
+// Globale Viridis-Skala (0–1) für „bauminterne Suitability“
+// --------------------------------------------------
+const leaves = root.leaves();
+let maxY_leaf = -Infinity;
+leaves.forEach(d => { if (d.y > maxY_leaf) maxY_leaf = d.y; });
+
+// Position der Skala unterhalb der Leaves
+const barY = yOffset + maxY_leaf + 200;
+const barX = 120;
+const barW = svg.attr("width") - 240;
+const barH = 40;
+
+// Viridis-Gradient
+const gradSuit = defs.append("linearGradient")
+  .attr("id", "gradSuit")
+  .attr("x1", "0%").attr("x2", "100%")
+  .attr("y1", "0%").attr("y2", "0%");
+
+suitabilityPalette.forEach((c, i) => {
+  gradSuit.append("stop")
+    .attr("offset", (i / (suitabilityPalette.length - 1)) * 100 + "%")
+    .attr("stop-color", c);
+});
+
+// Rechteck für Skala
+svg.append("rect")
+  .attr("x", barX)
+  .attr("y", barY)
+  .attr("width", barW)
+  .attr("height", barH)
+  .attr("fill", "url(#gradSuit)")
+  .attr("stroke", "#333")
+  .attr("stroke-width", 1);
+
+// Achsenbeschriftung
+svg.append("text")
+  .attr("x", barX)
+  .attr("y", barY - 10)
+  .text("Bauminterne Suitability (sigmoid(Leaf))");
+
+svg.append("text")
+  .attr("x", barX)
+  .attr("y", barY + barH + 14)
+  .text("0.0");
+
+svg.append("text")
+  .attr("x", barX + barW)
+  .attr("y", barY + barH + 14)
+  .attr("text-anchor", "end")
+  .text("1.0");
+
+// --------------------------------------------------
+// Pfad-Auswahl & Verbindung: Leaf mit maximalem Leaf-Wert
+// --------------------------------------------------
+
+// 1) Leaf mit maximalem Leaf-Wert
+let highlightLeaf = null;
+let maxLeafVal = -Infinity;
+leaves.forEach(d => {
+  if (d.data.leaf > maxLeafVal) {
+    maxLeafVal = d.data.leaf;
+    highlightLeaf = d;
+  }
+});
+
+// 2) Sigmoid-Mapping: leaf → p in [0,1]
+function sigmoid(x) {
+  return 1 / (1 + Math.exp(-x));
+}
+
+let suit = 0.5;
+if (highlightLeaf) {
+  suit = sigmoid(highlightLeaf.data.leaf);
+}
+
+// 3) Pfad-Knoten: root → highlightLeaf
+const pathNodes = new Set();
+let cur = highlightLeaf;
+while (cur) {
+  pathNodes.add(cur);
+  cur = cur.parent;
+}
+
+// 4) Overlay-Links für den Pfad
+g.append("g")
+  .selectAll("path.highlight-link")
+  .data(links.filter(l => pathNodes.has(l.source) && pathNodes.has(l.target)))
+  .join("path")
+    .attr("class", "highlight-link")
+    .attr("fill", "none")
+    .attr("stroke", "black")
+    .attr("stroke-width", 3)
+    .attr("d", d3.linkVertical()
+      .x(d => d.x)
+      .y(d => d.y)
+    );
+
+// 5) Marker auf der Suitability-Skala
+const markerX = barX + suit * barW;
+
+svg.append("line")
+  .attr("x1", markerX)
+  .attr("x2", markerX)
+  .attr("y1", barY - 10)
+  .attr("y2", barY + barH + 10)
+  .attr("stroke", "black")
+  .attr("stroke-width", 2);
+
+svg.append("text")
+  .attr("x", markerX)
+  .attr("y", barY + barH + 28)
+  .attr("text-anchor", "middle")
+  .text("sigmoid(Leaf) ≈ " + suit.toFixed(2));
+
+// 6) Verbindungslinie vom Leaf zur Skala
+if (highlightLeaf) {
+  const leafX_svg = xOffset + highlightLeaf.x;
+  const leafY_svg = yOffset + highlightLeaf.y + nodeH / 2;
+
+  svg.append("path")
+    .attr("d", `
+      M ${leafX_svg} ${leafY_svg}
+      L ${leafX_svg} ${barY - 40}
+      L ${markerX} ${barY}
+    `)
+    .attr("fill", "none")
+    .attr("stroke", "black")
+    .attr("stroke-width", 1.5)
+    .attr("stroke-dasharray", "4,3");
+}
+
+</script>

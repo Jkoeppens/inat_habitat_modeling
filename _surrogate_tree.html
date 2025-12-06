@@ -1,0 +1,331 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Global Surrogate Tree</title>
+<style>
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 1rem;
+    background: #f7f7f7;
+  }
+  .label {
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .edge-label {
+    font-size: 11px;
+    fill: #666;
+  }
+</style>
+
+<svg id="tree-svg"></svg>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script>
+// -------- Eingebettete Daten --------
+const treeData = {"feature": "m12_ndvi_mean", "threshold": 0.45892050862312317, "yes": {"feature": "m11_geary_ndwi", "threshold": 0.110894326120615, "yes": {"leaf": 0.27125186632465886, "suit": 0.27125186632465886}, "no": {"feature": "m11_moran_ndwi", "threshold": 0.2683987617492676, "yes": {"feature": "m08_geary_ndwi", "threshold": 0.03022550605237484, "yes": {"leaf": 0.34310201548186003, "suit": 0.34310201548186003}, "no": {"leaf": 0.649445440554828, "suit": 0.649445440554828}, "label": "Feuchtigkeits-Heterogenität (Sommer, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"feature": "m10_geary_ndwi", "threshold": 0.02901502698659897, "yes": {"leaf": 0.636204503137957, "suit": 0.636204503137957}, "no": {"leaf": 0.7793334406885234, "suit": 0.7793334406885234}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "label": "Feuchtigkeits-Cluster (Herbst, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"feature": "m11_moran_ndwi", "threshold": 0.4806208312511444, "yes": {"feature": "m12_moran_ndvi", "threshold": 0.3642455041408539, "yes": {"feature": "m12_geary_ndwi", "threshold": 0.21878062933683395, "yes": {"leaf": 0.060533648272976276, "suit": 0.060533648272976276}, "no": {"leaf": 0.01797730862551058, "suit": 0.01797730862551058}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"leaf": 0.11898655361599392, "suit": 0.11898655361599392}, "label": "Vegetations-Cluster (Herbst, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "no": {"feature": "m12_geary_ndwi", "threshold": 0.056137438863515854, "yes": {"feature": "m10_geary_ndwi", "threshold": 0.04833643510937691, "yes": {"leaf": 0.15312946705078637, "suit": 0.15312946705078637}, "no": {"leaf": 0.31734612623516184, "suit": 0.31734612623516184}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "no": {"leaf": 0.44346596151590345, "suit": 0.44346596151590345}, "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)", "palette": ["#f7f4f9", "#998ec3", "#542788"], "range": [0.0, 1.5]}, "label": "Feuchtigkeits-Cluster (Herbst, Moran)", "palette": ["#fee8c8", "#fdbb84", "#e34a33"], "range": [-0.2, 4.0]}, "label": "Vegetationsdichte (Herbst, NDVI)", "palette": ["#f2f2f2", "#a3c586", "#2f6b3a"], "range": [0.0, 1.0]};
+
+// Viridis-Farben für Suitability-Skala
+const viridis = [
+  "#440154","#472f7d","#3b518b","#2c718e",
+  "#21918c","#27ad81","#5cc863","#aadc32","#fde725"
+];
+
+// Feature-Paletten (NDVI / NDWI / Moran / Geary)
+function paletteForFeature(name) {
+  if (!name) return ["#ddd","#bbb","#999"];
+  const n = name.toLowerCase();
+  if (n.includes("ndvi"))
+    return ["#f2f2f2","#a3c586","#2f6b3a"];
+  if (n.includes("ndwi"))
+    return ["#f7fbff","#6baed6","#08519c"];
+  if (n.includes("moran"))
+    return ["#fee8c8","#fdbb84","#e34a33"];
+  if (n.includes("geary"))
+    return ["#f7f4f9","#998ec3","#542788"];
+  return ["#eee","#ccc","#aaa"];
+}
+
+// Threshold-Range-Heuristik
+function rangeForFeature(name) {
+  if (!name) return [0,1];
+  const n = name.toLowerCase();
+  if (n.includes("ndvi"))  return [0.0, 1.0];
+  if (n.includes("ndwi"))  return [-1.0, 1.0];
+  if (n.includes("moran")) return [-0.2, 4.0];
+  if (n.includes("geary")) return [0.0, 1.5];
+  return [0.0, 1.0];
+}
+
+const svg = d3.select("#tree-svg");
+const nodeW = 260;
+const nodeH = 80;
+const xSpacing = 200;
+const ySpacing = 160;
+
+// -------- Hierarchie: Nein links, Ja rechts --------
+const root = d3.hierarchy(treeData, d => {
+  const c = [];
+  if (d.no)  c.push(Object.assign({_edge: "Nein"}, d.no));
+  if (d.yes) c.push(Object.assign({_edge: "Ja"},   d.yes));
+  return c.length ? c : null;
+});
+
+// -------- Eigener Layout-Algorithmus (Option A) --------
+function assignDepth(node, depth) {
+  node.depth = depth;
+  if (node.children) node.children.forEach(ch => assignDepth(ch, depth + 1));
+}
+assignDepth(root, 0);
+
+function assignXIndex(node, state) {
+  if (!node.children || node.children.length === 0) {
+    node.xIndex = state.next++;
+  } else if (node.children.length === 1) {
+    assignXIndex(node.children[0], state);
+    node.xIndex = node.children[0].xIndex;
+  } else {
+    assignXIndex(node.children[0], state);
+    assignXIndex(node.children[1], state);
+    node.xIndex = (node.children[0].xIndex + node.children[1].xIndex) / 2;
+  }
+}
+assignXIndex(root, {next: 0});
+
+let minX=1e9,maxX=-1e9,minY=0,maxY=0;
+root.each(d => {
+  d.x = d.xIndex * xSpacing;
+  d.y = d.depth  * ySpacing;
+  if (d.x < minX) minX = d.x;
+  if (d.x > maxX) maxX = d.x;
+  if (d.y < minY) minY = d.y;
+  if (d.y > maxY) maxY = d.y;
+});
+
+const padding=200;
+const width  = (maxX - minX) + 2*padding;
+const height = (maxY - minY) + 3*padding;
+
+svg.attr("width", width).attr("height", height);
+
+const xOffset = padding - minX;
+const yOffset = padding - minY;
+
+const g = svg.append("g")
+  .attr("transform","translate("+xOffset+","+yOffset+")");
+const defs = svg.append("defs");
+
+function gradientIdFor(pal) {
+  const id = "grad_" + Math.random().toString(36).slice(2);
+  const grad = defs.append("linearGradient")
+    .attr("id",id).attr("x1","0%").attr("x2","100%")
+    .attr("y1","0%").attr("y2","0%");
+  pal.forEach((c,i)=> {
+    grad.append("stop")
+        .attr("offset",(i/(pal.length-1))*100+"%")
+        .attr("stop-color",c);
+  });
+  return id;
+}
+
+function thresholdXLocal(data) {
+  const name = (data.label || data.feature || "");
+  const [min,max] = data.range || rangeForFeature(name);
+  const thr = data.threshold;
+  if (thr == null) return 0;
+  let rel = (thr-min)/(max-min);
+  if (!Number.isFinite(rel)) rel = 0.5;
+  rel = Math.max(0.05,Math.min(0.95,rel));
+  return -nodeW/2 + rel*nodeW;
+}
+
+function bezier(sx,sy,tx,ty) {
+  const c1y = sy + (ty-sy)*0.25;
+  const c2y = sy + (ty-sy)*0.75;
+  return "M"+sx+","+sy+" C"+sx+","+c1y+" "+tx+","+c2y+" "+tx+","+ty;
+}
+
+
+// -------- Struktur-Gerüst (Eltern → Kind, aber nur Split-Knoten) --------
+const structureLinks = root.links().filter(l => l.target.data.leaf === undefined);
+
+g.append("g")
+  .attr("class", "split-links")
+  .selectAll("line")
+  .data(structureLinks)
+  .join("line")
+  .attr("x1", d => d.source.x)
+  .attr("y1", d => d.source.y + nodeH/2)
+  .attr("x2", d => d.target.x)
+  .attr("y2", d => d.target.y - nodeH/2)
+  .attr("stroke", "#ccc")
+  .attr("stroke-width", 1.2);
+
+
+// -------- Entscheidungs-Knoten --------
+const nodeGroup = g.append("g")
+  .selectAll("g.node")
+  .data(root.descendants().filter(d => d.data.leaf === undefined))
+  .join("g")
+  .attr("class","node")
+  .attr("transform", d => "translate(" + d.x + "," + d.y + ")");
+
+nodeGroup.each(function(d){
+  const n = d3.select(this);
+  const label = d.data.label || d.data.feature || "";
+  const gradId = gradientIdFor(paletteForFeature(label));
+
+  n.append("rect")
+    .attr("x", -nodeW/2).attr("y", -nodeH/2)
+    .attr("width", nodeW).attr("height", nodeH)
+    .attr("rx", 18).attr("fill", "url(#" + gradId + ")")
+    .attr("stroke", "#333").attr("stroke-width", 1.3);
+
+  const tx = thresholdXLocal(d.data);
+  n.append("line")
+    .attr("x1", tx).attr("x2", tx)
+    .attr("y1", -nodeH/2).attr("y2", nodeH/2)
+    .attr("stroke", "black").attr("stroke-width", 2);
+
+  n.append("text")
+    .attr("class", "label").attr("y", -nodeH/2 - 10)
+    .text(label);
+
+  if (d.data.threshold !== undefined) {
+    n.append("text")
+      .attr("class", "label")
+      .attr("y", nodeH/2 + 16)
+      .text("Schwelle: " + d.data.threshold.toFixed(3));
+  }
+});
+
+// -------- Suitability Skala --------
+const leaves = root.leaves();
+let maxYleaf=-1e9;
+leaves.forEach(l=>{ if(l.y>maxYleaf) maxYleaf=l.y; });
+
+const barY = maxYleaf + 200;
+const barX = minX + 40;
+const barW = (maxX - minX) - 80;
+const barH = 40;
+
+const gradSuit = defs.append("linearGradient")
+  .attr("id","gradSuit")
+  .attr("x1","0%").attr("x2","100%")
+  .attr("y1","0%").attr("y2","0%");
+viridis.forEach((c,i)=>{
+  gradSuit.append("stop")
+    .attr("offset",(i/(viridis.length-1))*100+"%")
+    .attr("stop-color",c);
+});
+
+g.append("rect")
+ .attr("x",barX).attr("y",barY)
+ .attr("width",barW).attr("height",barH)
+ .attr("fill","url(#gradSuit)")
+ .attr("stroke","#333").attr("stroke-width",1.2);
+
+g.append("text")
+ .attr("x",barX).attr("y",barY-10)
+ .text("Suitability (0 → 1, Viridis)");
+
+const suitToX = d3.scaleLinear().domain([0,1]).range([barX,barX+barW]);
+
+// -------- Leaf Pfadpunkte --------
+function buildLeafPathPoints(leafNode) {
+  const anc = leafNode.ancestors().reverse();
+  const pts=[];
+  const margin=14;
+
+  for (let i=0;i<anc.length-1;i++){
+    const parent = anc[i];
+    const child  = anc[i+1];
+
+    const side = (child.data._edge === "Ja") ? +1 : -1;
+
+    const txLocal = thresholdXLocal(parent.data);
+    const startX  = parent.x + txLocal + side*(nodeW*0.12);
+    const startY  = parent.y + nodeH/2 + margin;
+
+    if (pts.length===0){
+      pts.push({x:startX,y:startY});
+    } else {
+      const last = pts[pts.length-1];
+      if (last.x!==startX || last.y!==startY)
+        pts.push({x:startX,y:startY});
+    }
+
+    const horizX = child.x;
+    const horizY = startY;
+    pts.push({x:horizX,y:horizY});
+
+    if (child.data.leaf===undefined){
+      const aboveChildY = child.y - nodeH/2 - margin;
+      pts.push({x:horizX,y:aboveChildY});
+    }
+  }
+
+  let s = leafNode.data.suit;
+  if (!Number.isFinite(s)) s = 0.5;
+  s = Math.max(0,Math.min(1,s));
+
+  const targetX = suitToX(s);
+  const last = pts[pts.length-1];
+
+  pts.push({x:targetX,y:last.y});
+  pts.push({x:targetX,y:barY});
+
+  return pts;
+}
+
+// -------- segmentierte Bezierfunktion (NEU) --------
+function drawLeafPath(points) {
+  let d="";
+  for (let i=0;i<points.length-1;i++){
+    const p0=points[i];
+    const p1=points[i+1];
+    const c1x=p0.x;
+    const c1y=p0.y + (p1.y-p0.y)*0.33;
+    const c2x=p1.x;
+    const c2y=p0.y + (p1.y-p0.y)*0.66;
+
+    if (i===0)
+      d+=`M ${p0.x},${p0.y} `;
+
+    d+=`C ${c1x},${c1y} ${c2x},${c2y} ${p1.x},${p1.y} `;
+  }
+  return d;
+}
+
+// -------- Pfade zeichnen (NEU) --------
+g.append("g")
+ .selectAll("path.leafpath")
+ .data(leaves)
+ .join("path")
+ .attr("class","leafpath")
+ .attr("fill","none")
+ .attr("stroke","#b0b0b0")
+ .attr("stroke-width",1.2)
+ .attr("d", d => drawLeafPath(buildLeafPathPoints(d)));
+
+// -------- Dreiecke --------
+const triSize=8;
+
+g.append("g")
+ .selectAll("path.tri")
+ .data(leaves)
+ .join("path")
+ .attr("class","tri")
+ .attr("fill","#111")
+ .attr("d", d => {
+    let s = d.data.suit;
+    if (!Number.isFinite(s)) s=0.5;
+    s = Math.max(0,Math.min(1,s));
+    const cx = suitToX(s);
+    const cy = barY + barH/2;
+    const h = triSize;
+    return `M ${cx},${cy-h} L ${cx-h},${cy+h} L ${cx+h},${cy+h} Z`;
+ });
+
+</script>

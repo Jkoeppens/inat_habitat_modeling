@@ -1,0 +1,215 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Decision Tree – ML-Erklärung</title>
+
+<style>
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f5f5f5;
+    padding: 1rem;
+  }
+  .label {
+    font-size: 12px;
+    text-anchor: middle;
+  }
+  .edge-label {
+    font-size: 11px;
+    fill: #444;
+  }
+</style>
+
+<svg id="tree-svg" width="1400" height="2400"></svg>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+
+// -------------------------------
+// Eingebettete Daten
+// -------------------------------
+const treeData = REPLACE_JSON_HERE;
+const suitabilityPalette = ["#481a6c", "#365c8d", "#2e8e72", "#76cf60", "#f1e76c", "#fdfcd4"];
+
+// SVG Setup
+const svg = d3.select("#tree-svg");
+const width = +svg.attr("width");
+const nodeW = 260;
+const nodeH = 70;
+
+const dx = 200;   // vertikaler Abstand
+const dy = 260;   // horizontaler Abstand
+
+const marginLeft = 200;
+const marginTop  = 120;
+
+// -------------------------------
+// Hierarchie laden
+// -------------------------------
+const root = d3.hierarchy(treeData, d => {
+    const children = [];
+    if (d.yes) children.push(Object.assign({ "_edge": "Ja" }, d.yes));
+    if (d.no)  children.push(Object.assign({ "_edge": "Nein" }, d.no));
+    return children.length ? children : null;
+});
+
+// Vertikale Baumstruktur (Root oben)
+const treeLayout = d3.tree().nodeSize([dy, dx]);
+treeLayout(root);
+
+// -------------------------------
+// Zeichen-Gruppe
+// -------------------------------
+const g = svg.append("g")
+    .attr("transform", `translate(${marginLeft},${marginTop})`);
+
+// -------------------------------
+// Pfade zeichnen
+// -------------------------------
+g.append("g")
+ .selectAll("path")
+ .data(root.links())
+ .join("path")
+    .attr("fill", "none")
+    .attr("stroke", "#444")
+    .attr("stroke-width", 1.4)
+    .attr("d", d3.linkVertical()
+       .x(d => d.y)
+       .y(d => d.x)
+    );
+
+// Ja/Nein Labels
+g.append("g")
+ .selectAll("text")
+ .data(root.links())
+ .join("text")
+    .attr("class", "edge-label")
+    .attr("x", d => (d.source.y + d.target.y) / 2)
+    .attr("y", d => (d.source.x + d.target.x) / 2 - 6)
+    .text(d => d.target.data._edge || "");
+
+// Gradient-Container
+const defs = svg.append("defs");
+
+// Helper: Threshold-Linie X-Position
+function thresholdX(d) {
+    if (!d.data.range || d.data.threshold == null) return 0;
+    const [min, max] = d.data.range;
+    const rel = Math.max(0, Math.min(1, (d.data.threshold - min) / (max - min)));
+    return -nodeW/2 + rel * nodeW;
+}
+
+// -------------------------------
+// Nodes zeichnen
+// -------------------------------
+const node = g.append("g")
+  .selectAll("g")
+  .data(root.descendants())
+  .join("g")
+    .attr("transform", d => `translate(${d.y},${d.x})`);
+
+node.each(function(d) {
+    const gNode = d3.select(this);
+
+    // ---------------------------
+    // Leaf
+    // ---------------------------
+    if (d.data.leaf !== undefined) {
+        gNode.append("rect")
+            .attr("x", -110)
+            .attr("y", -25)
+            .attr("width", 220)
+            .attr("height", 50)
+            .attr("rx", 10)
+            .attr("fill", "#fdfcd4")
+            .attr("stroke", "#999");
+
+        gNode.append("text")
+            .attr("class", "label")
+            .attr("dy", 4)
+            .text("Leaf: " + d.data.leaf.toFixed(3));
+        return;
+    }
+
+    // ---------------------------
+    // Decision Node
+    // ---------------------------
+    const pal = d.data.palette;
+    const gradId = "grad_" + Math.random().toString(36).slice(2);
+
+    // Horizontaler Farbverlauf (Fix!)
+    const grad = defs.append("linearGradient")
+        .attr("id", gradId)
+        .attr("x1", "0%").attr("x2", "100%")
+        .attr("y1", "0%").attr("y2", "0%");
+
+    pal.forEach((c,i) => {
+        grad.append("stop")
+            .attr("offset", (i/(pal.length-1))*100 + "%")
+            .attr("stop-color", c);
+    });
+
+    // Rectangle
+    gNode.append("rect")
+        .attr("width", nodeW)
+        .attr("height", nodeH)
+        .attr("x", -nodeW/2)
+        .attr("y", -nodeH/2)
+        .attr("rx", 12)
+        .attr("fill", `url(#${gradId})`)
+        .attr("stroke", "#333");
+
+    // Threshold-Linie
+    gNode.append("line")
+        .attr("x1", thresholdX(d))
+        .attr("x2", thresholdX(d))
+        .attr("y1", -nodeH/2)
+        .attr("y2",  nodeH/2)
+        .attr("stroke", "black")
+        .attr("stroke-width", 2);
+
+    // Label oben
+    gNode.append("text")
+        .attr("class", "label")
+        .attr("y", -nodeH/2 - 10)
+        .text(d.data.label);
+
+    // Schwelle unten
+    gNode.append("text")
+        .attr("class", "label")
+        .attr("y", nodeH/2 + 14)
+        .text("Schwelle: " + d.data.threshold.toFixed(3));
+});
+
+// -------------------------------
+// Suitability-Bar unten
+// -------------------------------
+const leaves = root.leaves();
+const maxY = Math.max(...leaves.map(d => d.x));
+
+const barY = marginTop + maxY + 200;
+
+const gradSuit = defs.append("linearGradient")
+    .attr("id", "gradSuit")
+    .attr("x1","0%").attr("x2","100%")
+    .attr("y1","0%").attr("y2","0%");
+
+suitabilityPalette.forEach((c,i)=>{
+    gradSuit.append("stop")
+     .attr("offset", (i/(suitabilityPalette.length-1))*100+"%")
+     .attr("stop-color", c);
+});
+
+svg.append("rect")
+  .attr("x", 200)
+  .attr("y", barY)
+  .attr("width", width - 400)
+  .attr("height", 40)
+  .attr("fill", "url(#gradSuit)")
+  .attr("stroke", "#333");
+
+svg.append("text")
+  .attr("x", 200)
+  .attr("y", barY - 8)
+  .text("Suitability (niedrig → hoch)");
+
+</script>

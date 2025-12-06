@@ -90,7 +90,7 @@ gee:
 # 📦 Export
 # ------------------------------------------------------------
 export:
-  years: [2021, 2022, 2023, 2024, 2025]
+  years: [2017, 2018, 2019, 2020]
   months: [7, 8, 9, 10, 11, 12]
   region_bbox: [12.8, 52.2, 13.8, 52.7]
   artefacts_folder: "${paths.base_data_dir}/Artefacts"

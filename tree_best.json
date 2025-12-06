@@ -1,0 +1,239 @@
+{
+  "nodeid": 0,
+  "depth": 0,
+  "split": "m12_ndvi_mean",
+  "split_condition": 0.480010003,
+  "yes": 1,
+  "no": 2,
+  "missing": 2,
+  "gain": 89.1425629,
+  "cover": 155.281219,
+  "children": [
+    {
+      "nodeid": 1,
+      "depth": 1,
+      "split": "m12_geary_ndwi",
+      "split_condition": 0.0545174778,
+      "yes": 3,
+      "no": 4,
+      "missing": 4,
+      "gain": 37.4793472,
+      "cover": 98.8530197,
+      "children": [
+        {
+          "nodeid": 3,
+          "depth": 2,
+          "split": "m10_moran_ndwi",
+          "split_condition": 0.424680263,
+          "yes": 7,
+          "no": 8,
+          "missing": 8,
+          "gain": 20.4278049,
+          "cover": 27.4295979,
+          "children": [
+            {
+              "nodeid": 7,
+              "depth": 3,
+              "split": "m09_geary_ndwi",
+              "split_condition": 0.0917379409,
+              "yes": 15,
+              "no": 16,
+              "missing": 16,
+              "gain": 5.88471031,
+              "cover": 12.1470413,
+              "children": [
+                {
+                  "nodeid": 15,
+                  "leaf": 0.0795388147,
+                  "cover": 9.55582333
+                },
+                {
+                  "nodeid": 16,
+                  "leaf": -0.00331585458,
+                  "cover": 2.59121823
+                }
+              ]
+            },
+            {
+              "nodeid": 8,
+              "depth": 3,
+              "split": "m09_ndvi_mean",
+              "split_condition": 0.850283265,
+              "yes": 17,
+              "no": 18,
+              "missing": 18,
+              "gain": 11.4669638,
+              "cover": 15.2825565,
+              "children": [
+                {
+                  "nodeid": 17,
+                  "leaf": -0.0452734791,
+                  "cover": 11.4857178
+                },
+                {
+                  "nodeid": 18,
+                  "leaf": 0.0463396348,
+                  "cover": 3.79683876
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nodeid": 4,
+          "depth": 2,
+          "split": "m09_geary_ndwi",
+          "split_condition": 0.028088253,
+          "yes": 9,
+          "no": 10,
+          "missing": 10,
+          "gain": 15.1233978,
+          "cover": 71.4234161,
+          "children": [
+            {
+              "nodeid": 9,
+              "depth": 3,
+              "split": "m12_geary_ndwi",
+              "split_condition": 0.139125019,
+              "yes": 19,
+              "no": 20,
+              "missing": 20,
+              "gain": 7.63248253,
+              "cover": 7.39844084,
+              "children": [
+                {
+                  "nodeid": 19,
+                  "leaf": -0.0301068556,
+                  "cover": 3.89885855
+                },
+                {
+                  "nodeid": 20,
+                  "leaf": 0.0605578534,
+                  "cover": 3.49958229
+                }
+              ]
+            },
+            {
+              "nodeid": 10,
+              "depth": 3,
+              "split": "m07_moran_ndvi",
+              "split_condition": -0.210373208,
+              "yes": 21,
+              "no": 22,
+              "missing": 22,
+              "gain": 15.3434601,
+              "cover": 64.0249786,
+              "children": [
+                {
+                  "nodeid": 21,
+                  "leaf": 0.0634030923,
+                  "cover": 1.72091317
+                },
+                {
+                  "nodeid": 22,
+                  "leaf": -0.0631230697,
+                  "cover": 62.3040657
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "nodeid": 2,
+      "depth": 1,
+      "split": "m11_geary_ndwi",
+      "split_condition": 0.159952193,
+      "yes": 5,
+      "no": 6,
+      "missing": 5,
+      "gain": 23.0748444,
+      "cover": 56.4281998,
+      "children": [
+        {
+          "nodeid": 5,
+          "depth": 2,
+          "split": "m10_ndvi_mean",
+          "split_condition": 0.797601819,
+          "yes": 11,
+          "no": 12,
+          "missing": 12,
+          "gain": 11.7523956,
+          "cover": 48.9825363,
+          "children": [
+            {
+              "nodeid": 11,
+              "depth": 3,
+              "split": "m11_moran_ndwi",
+              "split_condition": 0.822871506,
+              "yes": 23,
+              "no": 24,
+              "missing": 23,
+              "gain": 4.30971527,
+              "cover": 47.6158791,
+              "children": [
+                {
+                  "nodeid": 23,
+                  "leaf": 0.0659800693,
+                  "cover": 45.5065117
+                },
+                {
+                  "nodeid": 24,
+                  "leaf": -0.00489215972,
+                  "cover": 2.10936689
+                }
+              ]
+            },
+            {
+              "nodeid": 12,
+              "leaf": -0.0576050952,
+              "cover": 1.36665845
+            }
+          ]
+        },
+        {
+          "nodeid": 6,
+          "depth": 2,
+          "split": "m09_moran_ndwi",
+          "split_condition": 0.359485358,
+          "yes": 13,
+          "no": 14,
+          "missing": 14,
+          "gain": 12.035429,
+          "cover": 7.4456625,
+          "children": [
+            {
+              "nodeid": 13,
+              "leaf": -0.0806633756,
+              "cover": 4.22497463
+            },
+            {
+              "nodeid": 14,
+              "depth": 3,
+              "split": "m12_geary_ndwi",
+              "split_condition": 0.133171022,
+              "yes": 25,
+              "no": 26,
+              "missing": 26,
+              "gain": 4.19068718,
+              "cover": 3.22068787,
+              "children": [
+                {
+                  "nodeid": 25,
+                  "leaf": 0.0674301907,
+                  "cover": 2.05482173
+                },
+                {
+                  "nodeid": 26,
+                  "leaf": -0.0276072063,
+                  "cover": 1.16586602
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
