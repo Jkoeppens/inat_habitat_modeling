@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vertikales Pattern – lineares Wachstum, moderat</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+    }
+    svg {
+      background: white;
+      margin: 1rem auto;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center">Punktpattern – moderates, lineares Wachstum</h2>
+  <svg id="pattern-svg" width="400" height="600"></svg>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const svg = d3.select("#pattern-svg");
+    const width = +svg.attr("width");
+    const height = +svg.attr("height");
+
+    const rMin = 1;
+    const rMax = 2.5; // 👈 kleiner wählen für weniger Überdeckung
+    const padding = 1;
+
+    const rowHeight = 2 * rMin + padding;
+    const colSpacing = 2 * rMin + padding;
+
+    const rows = Math.floor(height / rowHeight);
+    const cols = Math.floor(width / colSpacing);
+
+    const color = "#14568B";
+
+    for (let row = 0; row < rows; row++) {
+      const t = row / (rows - 1);
+      const y = height - row * rowHeight;
+      const r = rMin + t * (rMax - rMin); // lineares Wachstum
+
+      for (let col = 0; col < cols; col++) {
+        const x = col * colSpacing + colSpacing / 2;
+        svg.append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", r)
+          .attr("fill", color)
+          .attr("opacity", 0.9);
+      }
+    }
+  </script>
+</body>
+</html>

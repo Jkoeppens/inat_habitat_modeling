@@ -1,0 +1,124 @@
+/* style.css – Gestaltung des Surrogate Tree SVG */
+
+:root {
+  --base-font-size: 1.18rem;
+  --base-line-height: 1.68;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: "Finlandica", system-ui, -apple-system, sans-serif;
+  font-size: var(--base-font-size);
+  line-height: var(--base-line-height);
+}
+
+#tree-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Pfad-Highlighting */
+.edge {
+  stroke: #000;
+  stroke-width: 1.5px;
+  opacity: 0.4;
+  transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+}
+
+.edge.highlighted {
+  opacity: 1 !important;
+  stroke: #000 !important;
+  stroke-width: 3.5px !important;
+}
+
+.edge:not(.highlighted) {
+  opacity: 0.3;
+}
+
+/* ===============================
+   Node Threshold Styling
+   =============================== */
+
+.node-threshold-line {
+  stroke: #000;
+  stroke-width: 1;
+  stroke-dasharray: none;
+}
+
+.node:hover .node-threshold-line {
+  stroke-width: 2;
+}
+
+.node-threshold-label {
+  font-size: 10px;
+  fill: #000;
+  user-select: none;
+}
+
+/* =========================================
+   Suit-Marker (Skala rechts)
+   ========================================= */
+
+.leaf-tri {
+  stroke: #000;
+  stroke-width: 0.5;
+  transition: stroke-width 0.15s ease, opacity 0.15s ease;
+}
+
+.suit-label {
+  fill: #333;
+  font-weight: 400;
+  transition: font-weight 0.15s ease, opacity 0.15s ease;
+}
+
+.leaf-tri.highlighted {
+  stroke-width: 1.5;
+}
+
+.suit-label.highlighted {
+  font-weight: 600;
+  fill: #000;
+}
+
+.leaf-tri.faded,
+.suit-label.faded {
+  opacity: 0.25;
+}
+
+
+/* ===============================
+   Node Labels (outside) – FINAL
+   =============================== */
+
+.node-label-main {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #111;
+}
+
+.node-label-sub {
+  font-size: 9px;
+  fill: #666;
+}
+
+.node-label-outside {
+  user-select: none;
+}
+
+/* Highlight */
+.node-label-outside.highlighted text {
+  opacity: 1;
+  fill: #000;
+  font-weight: 700;
+}
+
+/* Faded */
+.node-label-outside.faded text {
+  opacity: 0.15;
+}
