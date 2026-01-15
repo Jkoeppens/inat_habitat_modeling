@@ -154,6 +154,11 @@ window.addEventListener("DOMContentLoaded", () => {
         console.log("✅ Gefundene Kante:", e.fromId, "→", e.toId, "| isScaleEdge:", e.isScaleEdge);
         out.add(e);
         collectDescendants(e.toId, edges, out);
+
+        // 🔽 NEU: Skala-Kante? Dann virtuell weitergehen
+        if (e.isScaleEdge) {
+          collectDescendants(e.toId, edges, out);
+        }
       }
     });
   }

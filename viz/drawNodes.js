@@ -47,6 +47,7 @@ export function drawNodes({
       showDecisionExplanation({
         node: d,
         nodeById: layout.nodeById,
+        edgeSegments: layout.edgeSegments,
         layer: edgeLabelLayer
       });
     })

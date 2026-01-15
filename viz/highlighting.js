@@ -118,5 +118,19 @@ export function setupHighlighting(root, edgeSegments) {
         .classed("highlighted", true)
         .classed("faded", false);
     });
+
+    // Node-Labels
+    d3.selectAll(".node-label-outside")
+      .classed("highlighted", false)
+      .classed("faded", true);
+
+    edgeSet.forEach(e => {
+      d3.selectAll(`.node-label-${e.fromId}`)
+        .classed("highlighted", true)
+        .classed("faded", false);
+      d3.selectAll(`.node-label-${e.toId}`)
+        .classed("highlighted", true)
+        .classed("faded", false);
+    });
   }
 }

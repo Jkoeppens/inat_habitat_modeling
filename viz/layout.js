@@ -181,6 +181,18 @@ nodesByDepth.forEach(nodes => {
     }
   });
 
+  // -------------------------
+  // NODE-ID → NODE MAPPING
+  // (für Edge- / Node-Erklärungen)
+  // -------------------------
+  const nodeById = {};
+
+  root.each(n => {
+    if (n.data && n.data._nid) {
+      nodeById[n.data._nid] = n;
+    }
+  });
+
   return {
     root,
     leaves,
@@ -192,6 +204,7 @@ nodesByDepth.forEach(nodes => {
     barW,
     barH,
     suitToY,
-    edgeSegments
+    edgeSegments,
+    nodeById
   };
 }

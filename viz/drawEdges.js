@@ -15,6 +15,7 @@ export function drawEdges({
   clearHighlight,
   edgeLabelLayer
 }) {
+  const { nodeById, edgeSegments } = layout;
   const edgeG = g.append("g").attr("class", "edges");
   const hitG  = g.append("g").attr("class", "edge-hits");
 
@@ -43,38 +44,37 @@ export function drawEdges({
   // ==================================================
   edgeG
     .selectAll("path.edge")
-    .data(layout.edgeSegments)
+    .data(edgeSegments)
     .join("path")
+    .attr("id", d => `edge-path-${d.fromId}-${d.toId}`)
     .attr("class", d => `edge ${d.cls ?? ""}`)
     .attr("fill", "none")
     .attr("d", pathD);
 
-// ==================================================
-// 2) Hit-Area (Interaktion)
-// ==================================================
-hitG
-  .selectAll("path.edge-hit")
-  .data(layout.edgeSegments)
-  .join("path")
-  .attr("class", "edge-hit")
-  .attr("fill", "none")
-  .attr("stroke", "transparent")
-  .attr("stroke-width", 18)
-  .attr("pointer-events", "stroke")
-  .attr("d", pathD)
-  .on("mouseover", (_, edge) => {
-    // 1) Visuelles Highlight
-    highlightFromEdge(edge);
-
-    // 2) Entscheidung anzeigen (vom Ziel-Node gelesen)
-    showDecisionExplanation({
-      edge,
-      nodeById: layout.nodeById,   // 🔑 wichtig
-      layer: edgeLabelLayer
+  // ==================================================
+  // 2) Hit-Area (Interaktion)
+  // ==================================================
+  hitG
+    .selectAll("path.edge-hit")
+    .data(edgeSegments)
+    .join("path")
+    .attr("class", "edge-hit")
+    .attr("fill", "none")
+    .attr("stroke", "transparent")
+    .attr("stroke-width", 18)
+    .attr("pointer-events", "stroke")
+    .attr("d", pathD)
+    .on("mouseover", (_, edge) => {
+      highlightFromEdge(edge);
+      showDecisionExplanation({
+        edge,
+        nodeById,
+        edgeSegments,
+        layer: edgeLabelLayer
+      });
+    })
+    .on("mouseout", () => {
+      clearHighlight();
+      clearDecisionExplanation(edgeLabelLayer);
     });
-  })
-  .on("mouseout", () => {
-    clearHighlight();
-    clearDecisionExplanation(edgeLabelLayer);
-  });
 }
