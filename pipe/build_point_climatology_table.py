@@ -293,8 +293,11 @@ def build_feature_table_for_cfg(cfg: dict):
     target = cfg["species"][tkey]
     contrast = cfg["species"][ckey]
 
-    tname = target["name"].replace(" ", "_")
-    cname = contrast["name"].replace(" ", "_")
+    def slug(name: str) -> str:
+        return name.replace(" ", "_").lower()
+
+    tname = slug(target["name"])
+    cname = slug(contrast["name"])
 
     # -------------------------
     # Basis-Ordner
@@ -318,7 +321,6 @@ def build_feature_table_for_cfg(cfg: dict):
     candidate_inputs = [
         output_dir / tname / merged_name,   # species-spezifischer Ordner
         output_dir / merged_name,           # allgemeiner Output
-        output_dir / "inat_merged_labeled.csv",
     ]
 
     input_csv = None

@@ -163,10 +163,20 @@ def find_model_and_feature_csv(cfg: dict):
     ]
 
     feature_path = None
+
     for d in features_dir_species_candidates:
-        candidate = d / f"inat_with_climatology_{t_pretty}_vs_{c_pretty}.csv"
-        if candidate.exists():
-            feature_path = candidate
+        if not d.exists():
+            continue
+
+        # Durchsuche alle passenden CSVs im Ordner
+        for f in d.glob("inat_with_climatology_*_vs_*.csv"):
+            # Case‑insensitive Vergleich auf Name
+            wanted = f"inat_with_climatology_{t_pretty}_vs_{c_pretty}.csv".lower()
+            if f.name.lower() == wanted:
+                feature_path = f
+                break
+
+        if feature_path is not None:
             break
 
     if feature_path is None:
@@ -231,8 +241,8 @@ def build_prediction_map(cfg: dict):
     profile.update(
         count=1,
         dtype="float32",
-        compress="deflate",
-        predictor=3,
+        compress="lzw",     # stabiler als deflate
+        tiled=False          # wichtig: kein Tiling → vermeidet IReadBlock-Fehler
     )
 
     out_root = Path(cfg["paths"]["output_dir"]) / tkey
@@ -271,11 +281,47 @@ def build_prediction_map(cfg: dict):
                     if raster is None:
                         raise ValueError(f"Kein CLIMATOLOGY-Raster für Monat {month}")
 
-                    arr = raster.read(band, window=window)
+                    try:
+                        arr = raster.read(band, window=window).astype(np.float32)
+                    except rasterio.errors.RasterioIOError as e:
+                        failed_reads += 1
+                        failed_pixels += h * w
+                        print(f"⚠️ Defektes Rasterfenster übersprungen: Monat {month}, Band {band}, Window {window}")
+                        arr = np.full((h, w), np.nan, dtype=np.float32)
+
+                    nodata = raster.nodata
+                    if nodata is not None:
+                        arr[arr == nodata] = np.nan
+
                     X_tile[:, idx] = arr.reshape(-1)
+
+                    if x0 == 0 and y0 == 0:
+                        print("\n🧪 DEBUG INPUT (erste Kachel)")
+                        print("X_tile shape:", X_tile.shape)
+
+                        finite_mask = np.isfinite(X_tile)
+                        print("Finite Werte pro Feature (erste 10):",
+                            finite_mask.sum(axis=0)[:10], "/", X_tile.shape[0])
+
+                        print("Beispiel Pixel 0:", X_tile[0, :10])
+                        print("Feature-Std (erste 10):",
+                            np.nanstd(X_tile, axis=0)[:10])
 
                 # Vorhersage
                 preds = model.predict_proba(X_tile)[:, 1]
+
+                # ---------------- DEBUG ----------------
+                if x0 == 0 and y0 == 0:
+                    print("\n🧪 DEBUG: erste Kachel")
+                    print("Feature-Spalten:", feature_cols[:10])
+                    print("X_tile[0][:10] =", X_tile[0][:10])
+                    print("preds[:10]     =", preds[:10])
+                    print("preds mean/min/max:",
+                        float(preds.mean()),
+                        float(preds.min()),
+                        float(preds.max()))
+                # ---------------------------------------
+
                 pred_tile = preds.reshape(h, w).astype("float32")
 
                 dst.write(pred_tile, 1, window=window)
@@ -305,7 +351,11 @@ def build_prediction_map(cfg: dict):
 
 def main():
     cfg = bootstrap_init(verbose=False)
-    return build_prediction_map(cfg)
+    tif, png = build_prediction_map(cfg)
+    print("\n🧾 Outputs:")
+    print("📍 GeoTIFF:", tif)
+    print("🖼️  PNG:    ", png)
+    return tif, png
 
 
 if __name__ == "__main__":

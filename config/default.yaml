@@ -21,6 +21,8 @@ paths:
   features_dir: "${paths.base_data_dir}/features"
   background_dir: "${paths.base_data_dir}/background"
   combined_dir: "${paths.base_data_dir}/combined"
+  processed_dir: "${paths.base_data_dir}/processed"
+  weather_dir: "${paths.base_data_dir}/weather"
 
   # Raster liegen typischerweise hier:
   processed_dir: "${paths.base_data_dir}/processed"
@@ -33,6 +35,10 @@ regions:
   berlin:
     bbox_wgs84: [12.7, 52.0, 14.3, 53.0]
     utm_crs: "EPSG:32633"
+  
+  grunewald:
+    bbox_wgs84: [13.2, 52.45, 13.3, 52.52]
+    utm_crs: "EPSG:32633"
 
 
 # ------------------------------------------------------------
@@ -40,15 +46,35 @@ regions:
 # ------------------------------------------------------------
 species:
   macrolepiota_procera:
-    id: 63401
-    name: "Macrolepiota procera"
+    id: 8914748
+    name: Macrolepiota procera
     label: 1
 
+  boletus_edulis:
+    id: 5954958
+    name: Boletus edulis
+  
+  imleria_badia:
+    name: Imleria badia
+    id: 510854
+
+  bombus_terrestris:
+    name: Bombus terrestris
+    id: 1340503
+
+  rana_temporaria:
+    name: Rana temporaria
+    id: 2426805
+
   parus_major:
-    id: 203153
-    name: "Parus major"
+    id: 9705453
+    name: Parus major
     label: 0
 
+  all:
+    id: null  # oder -1, wenn du lieber eine Zahl hast
+    name: background
+    label: 0
 
 # ------------------------------------------------------------
 # 🔧 Defaults – Auswahl der aktiven Species & Region
@@ -56,7 +82,7 @@ species:
 defaults:
   region: berlin
   target_species: macrolepiota_procera
-  contrast_species: parus_major
+  contrast_species: all
 
 
 # ------------------------------------------------------------
@@ -90,8 +116,8 @@ gee:
 # 📦 Export
 # ------------------------------------------------------------
 export:
-  years: [2017, 2018, 2019, 2020]
-  months: [7, 8, 9, 10, 11, 12]
+  years: [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
+  months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
   region_bbox: [12.8, 52.2, 13.8, 52.7]
   artefacts_folder: "${paths.base_data_dir}/Artefacts"
 
@@ -117,6 +143,25 @@ artefacts:
   std_kernel_size: 11
   subsample_step: 5
 
+# ------------------------------------------------------------
+# Wetter
+# ------------------------------------------------------------
+
+weather:
+  source: "era5-land"
+
+  variables:
+    - name: "total_precipitation"
+      short: "precip"
+      aggregation: "monthly_sum"
+
+    - name: "2m_temperature"
+      short: "temp"
+      aggregation: "monthly_mean"
+
+  output:
+    temporal_unit: "monthly"
+    bands_per_month: 2
 
 # ------------------------------------------------------------
 # ⚙️ Debug

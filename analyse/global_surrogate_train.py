@@ -1,19 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-Trainiert einen Global Surrogate Tree für ein XGBoost-Modell
-und speichert den Baum als JSON.
-
-Aufruf z.B.:
-
-python analyse/global_surrogate_train.py \
-  --model "/Volumes/Data/iNaturalist/outputs/macrolepiota_procera/model_MONTHLY_Macrolepiota_procera_vs_Parus_major.json" \
-  --data  "/Volumes/Data/iNaturalist/features/Macrolepiota_procera/inat_with_climatology_Macrolepiota_procera_vs_Parus_major.csv" \
-  --out-json surrogate_tree.json \
-  --depth 4
-"""
-
 import argparse
 import json
 from pathlib import Path
@@ -22,6 +9,12 @@ import numpy as np
 import pandas as pd
 from sklearn.tree import DecisionTreeRegressor
 import xgboost as xgb
+
+# Optional: Konfiguration laden
+try:
+    from bootstrap import init as bootstrap_init
+except ImportError:
+    bootstrap_init = None
 
 # -------------------------------
 # Farbpaletten & Ranges
@@ -39,44 +32,22 @@ RANGES = {
     "geary": (0.0, 1.5),
 }
 
-# -------------------------------
-# Feature-Semantik
-# -------------------------------
 
 def infer_semantics(feature_name: str):
-    """
-    Nimmt z.B.
-      m12_ndvi_mean
-      m08_geary_ndwi
-      m10_moran_ndvi
-    und liefert Label, Palette, Range.
-    """
     if not (feature_name.startswith("m") and "_" in feature_name):
-        return {
-            "label": feature_name,
-            "palette": ["#dddddd", "#aaaaaa", "#666666"],
-            "range": (0.0, 1.0),
-        }
-
+        return {"label": feature_name, "palette": ["#dddddd"] * 3, "range": (0.0, 1.0)}
     try:
         month = int(feature_name[1:3])
         rest = feature_name[4:]
     except Exception:
-        return {
-            "label": feature_name,
-            "palette": ["#dddddd", "#aaaaaa", "#666666"],
-            "range": (0.0, 1.0),
-        }
+        return {"label": feature_name, "palette": ["#dddddd"] * 3, "range": (0.0, 1.0)}
 
-    if month in (7, 8, 9):
-        season = "Sommer"
-    elif month in (10, 11, 12):
-        season = "Herbst"
-    else:
-        season = "Saison"
+    if month in (7, 8, 9): season = "Sommer"
+    elif month in (10, 11, 12): season = "Herbst"
+    else: season = "Saison"
 
     label = feature_name
-    palette = ["#dddddd", "#aaaaaa", "#666666"]
+    palette = ["#dddddd"] * 3
     rng = (0.0, 1.0)
 
     if rest.startswith("ndvi_mean"):
@@ -91,134 +62,106 @@ def infer_semantics(feature_name: str):
         label = f"Vegetations-Cluster ({season}, Moran)"
         palette = MORAN_PALETTE
         rng = RANGES["moran"]
-    elif rest.startswith("moran_ndwi"):
-        label = f"Feuchtigkeits-Cluster ({season}, Moran)"
-        palette = MORAN_PALETTE
-        rng = RANGES["moran"]
     elif rest.startswith("geary_ndvi"):
         label = f"Vegetations-Heterogenität ({season}, Geary)"
         palette = GEARY_PALETTE
         rng = RANGES["geary"]
+    elif rest.startswith("moran_ndwi"):
+        label = f"Feuchtigkeits-Cluster ({season}, Moran)"
+        palette = MORAN_PALETTE
+        rng = RANGES["moran"]
     elif rest.startswith("geary_ndwi"):
         label = f"Feuchtigkeits-Heterogenität ({season}, Geary)"
         palette = GEARY_PALETTE
         rng = RANGES["geary"]
 
-    return {
-        "label": label,
-        "palette": palette,
-        "range": rng,
-    }
+    return {"label": label, "palette": palette, "range": rng}
 
-# -------------------------------
-# 1) Surrogate trainieren
-# -------------------------------
 
 def train_surrogate(model_path: str, data_path: str, max_depth: int = 4):
-    print("→ Lade XGBoost-Modell…")
     model = xgb.XGBClassifier()
     model.load_model(model_path)
-
     booster = model.get_booster()
     feature_names = booster.feature_names
     if feature_names is None:
         raise ValueError("❌ Modell enthält keine Feature-Namen im Booster!")
 
-    print(f"→ Modell hat {len(feature_names)} Features")
-
-    print("→ Lade Daten…")
     df = pd.read_csv(data_path)
-
-    missing = [f for f in feature_names if f not in df.columns]
-    if missing:
-        raise ValueError(f"❌ CSV enthält nicht alle Modell-Features. Fehlend: {missing}")
-
     X = df[feature_names].copy()
-
     for col in X.columns:
         if X[col].dtype == "object":
-            try:
-                X[col] = X[col].astype(float)
-            except Exception:
-                raise ValueError(f"❌ Spalte {col} ist object und lässt sich nicht in float casten.")
+            X[col] = pd.to_numeric(X[col], errors="coerce")
 
-    print("→ Berechne Modell-Predictions (P(1))…")
     y_pred = model.predict_proba(X)[:, 1]
-
-    print("→ Trainiere Surrogate DecisionTreeRegressor…")
     surrogate = DecisionTreeRegressor(
-        max_depth=max_depth,
-        min_samples_leaf=50,
-        random_state=42
+        max_depth=max_depth, min_samples_leaf=50, random_state=42
     )
     surrogate.fit(X, y_pred)
-
     return surrogate, feature_names
 
-# -------------------------------
-# 2) Sklearn-Tree → JSON-Baum
-# -------------------------------
 
 def tree_to_json(tree, feature_names):
-    """
-    Konvertiert sklearn.tree_ in rekursives JSON:
-    - Splits: {feature, threshold, yes, no, label, palette, range}
-    - Leafs:  {leaf, suit}
-    suit = mittlere Vorhersage im Leaf (≈ P(geeignet))
-    """
-
     def recurse(node_id: int):
-        # Leaf?
         if tree.feature[node_id] == -2:
             val = float(tree.value[node_id][0][0])
-            return {
-                "leaf": val,
-                "suit": val
-            }
-
+            return {"leaf": val, "suit": val}
         feat_idx = int(tree.feature[node_id])
         feat_name = feature_names[feat_idx]
         thr = float(tree.threshold[node_id])
-
         semantics = infer_semantics(feat_name)
-
-        left_id = int(tree.children_left[node_id])
-        right_id = int(tree.children_right[node_id])
-
-        left = recurse(left_id)
-        right = recurse(right_id)
-
-        node = {
+        return {
             "feature": feat_name,
             "threshold": thr,
-            "yes": right,  # "Ja" = rechts (>= thr)
-            "no": left,    # "Nein" = links  (< thr)
+            "yes": recurse(tree.children_right[node_id]),
+            "no": recurse(tree.children_left[node_id]),
+            **semantics
         }
-        node.update(semantics)
-        return node
-
     return recurse(0)
 
-# -------------------------------
-# MAIN
-# -------------------------------
+
+def resolve_paths_from_cfg():
+    if not bootstrap_init:
+        raise RuntimeError("bootstrap.py konnte nicht importiert werden.")
+
+    cfg = bootstrap_init(verbose=True)
+    target_key = cfg["defaults"]["target_species"]
+    contrast_key = cfg["defaults"].get("contrast_species", "background")
+
+    target_name = cfg["species"][target_key]["name"].replace(" ", "_").lower()
+    contrast_name = (
+        cfg["species"].get(contrast_key, {"name": "background"})["name"].replace(" ", "_").lower()
+    )
+
+    model_path = Path(cfg["paths"]["output_dir"]) / target_name / f"model_MONTHLY_{target_name}_vs_{contrast_name}.json"
+    data_path = Path(cfg["paths"]["features_dir"]) / target_name / f"inat_with_climatology_{target_name}_vs_{contrast_name}.csv"
+    out_json = Path("surrogate_tree_" + target_name + "_vs_" + contrast_name + ".json")
+
+    return model_path, data_path, out_json
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", required=True, help="Pfad zum XGBoost-JSON-Modell")
-    parser.add_argument("--data", required=True, help="CSV mit Features")
-    parser.add_argument("--out-json", default="surrogate_tree.json", help="JSON-Ausgabedatei")
-    parser.add_argument("--depth", type=int, default=4, help="max_depth des Surrogate Trees")
+    parser.add_argument("--model", help="Pfad zum XGBoost-Modell")
+    parser.add_argument("--data", help="Pfad zur Feature-CSV")
+    parser.add_argument("--out-json", help="Ausgabe-JSON-Pfad")
+    parser.add_argument("--depth", type=int, default=4)
+    parser.add_argument("--from-cfg", action="store_true", help="Pfadinfos aus default.yaml laden")
     args = parser.parse_args()
 
-    surrogate, featnames = train_surrogate(args.model, args.data, args.depth)
+    if args.from_cfg:
+        model_path, data_path, out_json = resolve_paths_from_cfg()
+    else:
+        if not (args.model and args.data and args.out_json):
+            raise ValueError("❌ Bitte entweder --from-cfg oder alle --model/--data/--out-json angeben.")
+        model_path = Path(args.model)
+        data_path = Path(args.data)
+        out_json = Path(args.out_json)
+
+    surrogate, featnames = train_surrogate(model_path, data_path, args.depth)
     tree_dict = tree_to_json(surrogate.tree_, featnames)
 
-    out_path = Path(args.out_json)
-    out_path.write_text(json.dumps(tree_dict, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"✓ Surrogate-Tree-JSON gespeichert unter: {out_path}")
-
-    print("=== DONE ===")
+    out_json.write_text(json.dumps(tree_dict, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"✓ Surrogate-Tree gespeichert unter: {out_json}")
 
 if __name__ == "__main__":
     main()

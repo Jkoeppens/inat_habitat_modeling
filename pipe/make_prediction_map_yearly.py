@@ -17,6 +17,19 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 
+def run_prediction_for_year(cfg, year, month=None):
+    """
+    Wrapper, der für ein spezifisches Jahr (und optional Monat)
+    die Suitability-Karte erzeugt.
+    month=None → Jahresaggregat oder alle Monate?
+    """
+    # Anwendung von make_prediction_map.py
+    from pipe.make_prediction_map import build_prediction_map
+
+    # Hier kannst du month übergeben oder Funktionen anpassen,
+    # falls make_prediction_map_yearly ein anderes Verhalten braucht.
+    return build_prediction_map(cfg)
+
 # ---------------------------------------------------------
 # Daten laden (Suitability + Mask)
 # ---------------------------------------------------------

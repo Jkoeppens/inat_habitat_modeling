@@ -55,9 +55,9 @@ def train_pilz_model(cfg=None):
     target = cfg["defaults"]["target_species"]
     contrast = cfg["defaults"]["contrast_species"]
 
-    tname = cfg["species"][target]["name"].replace(" ", "_")
+    tname = cfg["species"][target]["name"].replace(" ", "_").lower()
     cname = (
-        cfg["species"][contrast]["name"].replace(" ", "_")
+        cfg["species"][contrast]["name"].replace(" ", "_").lower()
         if contrast in cfg["species"]
         else "background"
     )

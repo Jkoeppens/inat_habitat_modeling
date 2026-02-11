@@ -57,13 +57,11 @@ def train_pilz_model_monthly(cfg=None):
     target = cfg["defaults"]["target_species"]
     contrast = cfg["defaults"]["contrast_species"]
 
-    tname = cfg["species"][target]["name"].replace(" ", "_")
-    cname = (
-        cfg["species"][contrast]["name"].replace(" ", "_")
-        if contrast in cfg["species"]
-        else "background"
-    )
-
+    tname = target
+    if contrast in cfg["species"]:
+        cname = cfg["species"][contrast]["name"].replace(" ", "_").lower()
+    else:
+        cname = "background"
     print(f"🎯 MONTHLY-MODELL: {tname} vs {cname}")
 
 

@@ -1,0 +1,184 @@
+{
+  "feature": "m08_geary_ndwi",
+  "threshold": 0.08925210312008858,
+  "yes": {
+    "feature": "m12_ndwi_mean",
+    "threshold": -0.4397114962339401,
+    "yes": {
+      "feature": "m11_moran_ndwi",
+      "threshold": 0.13775623589754105,
+      "yes": {
+        "feature": "m12_geary_ndvi",
+        "threshold": 0.24005219340324402,
+        "yes": {
+          "leaf": 0.0849427737557562,
+          "suit": 0.0849427737557562
+        },
+        "no": {
+          "leaf": 0.008934264876349034,
+          "suit": 0.008934264876349034
+        },
+        "label": "Vegetations-Heterogenität (Herbst, Geary)",
+        "palette": [
+          "#f7f4f9",
+          "#998ec3",
+          "#542788"
+        ],
+        "range": [
+          0.0,
+          1.5
+        ]
+      },
+      "no": {
+        "leaf": 0.14402489577131122,
+        "suit": 0.14402489577131122
+      },
+      "label": "Feuchtigkeits-Cluster (Herbst, Moran)",
+      "palette": [
+        "#fee8c8",
+        "#fdbb84",
+        "#e34a33"
+      ],
+      "range": [
+        -0.2,
+        4.0
+      ]
+    },
+    "no": {
+      "feature": "m09_ndwi_std",
+      "threshold": 0.04959557764232159,
+      "yes": {
+        "leaf": 0.39892819863547324,
+        "suit": 0.39892819863547324
+      },
+      "no": {
+        "feature": "m07_geary_ndvi",
+        "threshold": 0.21212581545114517,
+        "yes": {
+          "leaf": 0.24072467077748624,
+          "suit": 0.24072467077748624
+        },
+        "no": {
+          "leaf": 0.08345878860252144,
+          "suit": 0.08345878860252144
+        },
+        "label": "Vegetations-Heterogenität (Sommer, Geary)",
+        "palette": [
+          "#f7f4f9",
+          "#998ec3",
+          "#542788"
+        ],
+        "range": [
+          0.0,
+          1.5
+        ]
+      },
+      "label": "m09_ndwi_std",
+      "palette": [
+        "#dddddd",
+        "#aaaaaa",
+        "#666666"
+      ],
+      "range": [
+        0.0,
+        1.0
+      ]
+    },
+    "label": "Feuchtigkeit (Herbst, NDWI)",
+    "palette": [
+      "#f7fbff",
+      "#6baed6",
+      "#08519c"
+    ],
+    "range": [
+      -1.0,
+      1.0
+    ]
+  },
+  "no": {
+    "feature": "m09_ndwi_std",
+    "threshold": 0.05549576319754124,
+    "yes": {
+      "leaf": 0.6794654060335409,
+      "suit": 0.6794654060335409
+    },
+    "no": {
+      "feature": "m10_ndvi_std",
+      "threshold": 0.05765296332538128,
+      "yes": {
+        "feature": "m12_moran_ndwi",
+        "threshold": 0.07929551228880882,
+        "yes": {
+          "leaf": 0.3182134416901731,
+          "suit": 0.3182134416901731
+        },
+        "no": {
+          "leaf": 0.09733608693655003,
+          "suit": 0.09733608693655003
+        },
+        "label": "Feuchtigkeits-Cluster (Herbst, Moran)",
+        "palette": [
+          "#fee8c8",
+          "#fdbb84",
+          "#e34a33"
+        ],
+        "range": [
+          -0.2,
+          4.0
+        ]
+      },
+      "no": {
+        "feature": "m11_ndvi_std",
+        "threshold": 0.04135538823902607,
+        "yes": {
+          "leaf": 0.3577792089122037,
+          "suit": 0.3577792089122037
+        },
+        "no": {
+          "leaf": 0.6914369169202063,
+          "suit": 0.6914369169202063
+        },
+        "label": "m11_ndvi_std",
+        "palette": [
+          "#dddddd",
+          "#aaaaaa",
+          "#666666"
+        ],
+        "range": [
+          0.0,
+          1.0
+        ]
+      },
+      "label": "m10_ndvi_std",
+      "palette": [
+        "#dddddd",
+        "#aaaaaa",
+        "#666666"
+      ],
+      "range": [
+        0.0,
+        1.0
+      ]
+    },
+    "label": "m09_ndwi_std",
+    "palette": [
+      "#dddddd",
+      "#aaaaaa",
+      "#666666"
+    ],
+    "range": [
+      0.0,
+      1.0
+    ]
+  },
+  "label": "Feuchtigkeits-Heterogenität (Sommer, Geary)",
+  "palette": [
+    "#f7f4f9",
+    "#998ec3",
+    "#542788"
+  ],
+  "range": [
+    0.0,
+    1.5
+  ]
+}

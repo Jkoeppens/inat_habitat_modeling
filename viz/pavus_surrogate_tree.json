@@ -1,0 +1,184 @@
+{
+  "feature": "m12_ndvi_mean",
+  "threshold": 0.45892050862312317,
+  "yes": {
+    "feature": "m11_geary_ndwi",
+    "threshold": 0.110894326120615,
+    "yes": {
+      "leaf": 0.27125186632465886,
+      "suit": 0.27125186632465886
+    },
+    "no": {
+      "feature": "m11_moran_ndwi",
+      "threshold": 0.2683987617492676,
+      "yes": {
+        "feature": "m08_geary_ndwi",
+        "threshold": 0.03022550605237484,
+        "yes": {
+          "leaf": 0.34310201548186003,
+          "suit": 0.34310201548186003
+        },
+        "no": {
+          "leaf": 0.649445440554828,
+          "suit": 0.649445440554828
+        },
+        "label": "Feuchtigkeits-Heterogenität (Sommer, Geary)",
+        "palette": [
+          "#f7f4f9",
+          "#998ec3",
+          "#542788"
+        ],
+        "range": [
+          0.0,
+          1.5
+        ]
+      },
+      "no": {
+        "feature": "m10_geary_ndwi",
+        "threshold": 0.02901502698659897,
+        "yes": {
+          "leaf": 0.636204503137957,
+          "suit": 0.636204503137957
+        },
+        "no": {
+          "leaf": 0.7793334406885234,
+          "suit": 0.7793334406885234
+        },
+        "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)",
+        "palette": [
+          "#f7f4f9",
+          "#998ec3",
+          "#542788"
+        ],
+        "range": [
+          0.0,
+          1.5
+        ]
+      },
+      "label": "Feuchtigkeits-Cluster (Herbst, Moran)",
+      "palette": [
+        "#fee8c8",
+        "#fdbb84",
+        "#e34a33"
+      ],
+      "range": [
+        -0.2,
+        4.0
+      ]
+    },
+    "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)",
+    "palette": [
+      "#f7f4f9",
+      "#998ec3",
+      "#542788"
+    ],
+    "range": [
+      0.0,
+      1.5
+    ]
+  },
+  "no": {
+    "feature": "m11_moran_ndwi",
+    "threshold": 0.4806208312511444,
+    "yes": {
+      "feature": "m12_moran_ndvi",
+      "threshold": 0.3642455041408539,
+      "yes": {
+        "feature": "m12_geary_ndwi",
+        "threshold": 0.21878062933683395,
+        "yes": {
+          "leaf": 0.060533648272976276,
+          "suit": 0.060533648272976276
+        },
+        "no": {
+          "leaf": 0.01797730862551058,
+          "suit": 0.01797730862551058
+        },
+        "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)",
+        "palette": [
+          "#f7f4f9",
+          "#998ec3",
+          "#542788"
+        ],
+        "range": [
+          0.0,
+          1.5
+        ]
+      },
+      "no": {
+        "leaf": 0.11898655361599392,
+        "suit": 0.11898655361599392
+      },
+      "label": "Vegetations-Cluster (Herbst, Moran)",
+      "palette": [
+        "#fee8c8",
+        "#fdbb84",
+        "#e34a33"
+      ],
+      "range": [
+        -0.2,
+        4.0
+      ]
+    },
+    "no": {
+      "feature": "m12_geary_ndwi",
+      "threshold": 0.056137438863515854,
+      "yes": {
+        "feature": "m10_geary_ndwi",
+        "threshold": 0.04833643510937691,
+        "yes": {
+          "leaf": 0.15312946705078637,
+          "suit": 0.15312946705078637
+        },
+        "no": {
+          "leaf": 0.31734612623516184,
+          "suit": 0.31734612623516184
+        },
+        "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)",
+        "palette": [
+          "#f7f4f9",
+          "#998ec3",
+          "#542788"
+        ],
+        "range": [
+          0.0,
+          1.5
+        ]
+      },
+      "no": {
+        "leaf": 0.44346596151590345,
+        "suit": 0.44346596151590345
+      },
+      "label": "Feuchtigkeits-Heterogenität (Herbst, Geary)",
+      "palette": [
+        "#f7f4f9",
+        "#998ec3",
+        "#542788"
+      ],
+      "range": [
+        0.0,
+        1.5
+      ]
+    },
+    "label": "Feuchtigkeits-Cluster (Herbst, Moran)",
+    "palette": [
+      "#fee8c8",
+      "#fdbb84",
+      "#e34a33"
+    ],
+    "range": [
+      -0.2,
+      4.0
+    ]
+  },
+  "label": "Vegetationsdichte (Herbst, NDVI)",
+  "palette": [
+    "#f2f2f2",
+    "#a3c586",
+    "#2f6b3a"
+  ],
+  "range": [
+    0.0,
+    1.0
+  ]
+}
